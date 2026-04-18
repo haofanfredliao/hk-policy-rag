@@ -3,10 +3,14 @@ from htbuilder import div, styles
 from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor
 import datetime
+import json
 import os
+from pathlib import Path
 import textwrap
 import time
 
+import faiss
+import numpy as np
 import streamlit as st
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -23,6 +27,7 @@ st.set_page_config(page_title="HK Policy AI Assistant", page_icon="✨")
 executor = ThreadPoolExecutor(max_workers=5)
 
 MODEL = "gpt-4o-mini"
+EMBEDDING_MODEL = "text-embedding-3-small"
 
 HISTORY_LENGTH = 5
 SUMMARIZE_OLD_HISTORY = True
@@ -31,6 +36,13 @@ SUMMARIZE_OLD_HISTORY = True
 DOCS_CONTEXT_LEN = 10
 EXTRA_CONTEXT_LEN = 10
 MIN_TIME_BETWEEN_REQUESTS = datetime.timedelta(seconds=3)
+
+PROJECT_DIR = Path(__file__).resolve().parent
+CHUNKS_FILE = PROJECT_DIR / "hk_policy_chunks.json"
+INDEX_DIR = PROJECT_DIR / ".rag_index"
+INDEX_FILE = INDEX_DIR / "hk_policy.faiss"
+METADATA_FILE = INDEX_DIR / "metadata.json"
+EMBEDDING_BATCH_SIZE = 100
 
 DEBUG_MODE = st.query_params.get("debug", "false").lower() == "true"
 
@@ -157,12 +169,13 @@ def build_question_prompt(question):
     # Drop empty context entries so they don't clutter the prompt.
     context = {k: v for k, v in context.items() if v}
 
-    return build_prompt(
+    prompt = build_prompt(
         instructions=INSTRUCTIONS,
         **context,
         recent_messages=recent_history_str,
         question=question,
     )
+    return prompt, context
 
 
 def generate_chat_summary(messages):
@@ -183,14 +196,164 @@ def history_to_text(chat_history):
     return "\n".join(f"[{h['role']}]: {h['content']}" for h in chat_history)
 
 
+def _embed_texts(texts):
+    response = client.embeddings.create(model=EMBEDDING_MODEL, input=texts)
+    return [item.embedding for item in response.data]
+
+
+def _load_chunks_data():
+    if not CHUNKS_FILE.exists():
+        return []
+    with CHUNKS_FILE.open("r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def _build_and_persist_index(chunks_data):
+    if not chunks_data:
+        return None, []
+
+    INDEX_DIR.mkdir(parents=True, exist_ok=True)
+
+    texts = [item.get("page_content", "") for item in chunks_data]
+    metadata = [item.get("metadata", {}) for item in chunks_data]
+
+    all_embeddings = []
+    for i in range(0, len(texts), EMBEDDING_BATCH_SIZE):
+        batch = texts[i : i + EMBEDDING_BATCH_SIZE]
+        batch_embeddings = _embed_texts(batch)
+        all_embeddings.extend(batch_embeddings)
+
+    vectors = np.array(all_embeddings, dtype=np.float32)
+    faiss.normalize_L2(vectors)
+
+    index = faiss.IndexFlatIP(vectors.shape[1])
+    index.add(vectors)
+
+    faiss.write_index(index, str(INDEX_FILE))
+    with METADATA_FILE.open("w", encoding="utf-8") as f:
+        json.dump(metadata, f, ensure_ascii=False)
+
+    return index, metadata
+
+
+@st.cache_resource
+def get_rag_index():
+    if not os.getenv("OPENAI_API_KEY"):
+        return None, []
+
+    if INDEX_FILE.exists() and METADATA_FILE.exists():
+        index = faiss.read_index(str(INDEX_FILE))
+        with METADATA_FILE.open("r", encoding="utf-8") as f:
+            metadata = json.load(f)
+        return index, metadata
+
+    chunks_data = _load_chunks_data()
+    return _build_and_persist_index(chunks_data)
+
+
+@st.cache_data
+def get_chunks_data():
+    return _load_chunks_data()
+
+
+def _extract_years_from_query(query):
+    tokens = query.replace("/", " ").replace("-", " ").split()
+    years = []
+    for token in tokens:
+        if token.isdigit() and len(token) == 4 and token.startswith(("19", "20")):
+            years.append(token)
+    return set(years)
+
+
 def search_relevant_docs(query):
-    """Searches policy documents for relevant chunks. TODO: wire up RAG backend."""
-    return ""
+    """Retrieves relevant chunks with FAISS and returns prompt-ready context."""
+    index, metadata = get_rag_index()
+    chunks_data = get_chunks_data()
+
+    if index is None or not chunks_data:
+        return ""
+
+    query_embedding = _embed_texts([query])[0]
+    query_vector = np.array([query_embedding], dtype=np.float32)
+    faiss.normalize_L2(query_vector)
+
+    k = min(DOCS_CONTEXT_LEN, index.ntotal)
+    distances, indices = index.search(query_vector, k)
+
+    context_lines = []
+    for rank, idx in enumerate(indices[0]):
+        if idx < 0:
+            continue
+
+        chunk = chunks_data[idx]
+        md = metadata[idx] if idx < len(metadata) else {}
+        source_type = md.get("source_type", "Unknown")
+        year = md.get("year", "Unknown")
+        filename = md.get("filename", "Unknown")
+        page = md.get("page", "Unknown")
+        score = float(distances[0][rank])
+        text = chunk.get("page_content", "").strip()
+
+        context_lines.append(
+            "\\n".join(
+                [
+                    f"[Chunk {rank + 1}]",
+                    f"source_type={source_type}; year={year}; file={filename}; page={page}; score={score:.4f}",
+                    text,
+                ]
+            )
+        )
+
+    return "\n\n".join(context_lines)
 
 
 def search_extra_context(query):
-    """Searches an additional context source. TODO: wire up RAG backend."""
-    return ""
+    """Applies lightweight metadata filtering for targeted policy queries."""
+    chunks_data = get_chunks_data()
+    if not chunks_data:
+        return ""
+
+    query_lower = query.lower()
+    years = _extract_years_from_query(query)
+
+    wanted_source = None
+    if "budget" in query_lower or "預算" in query or "预算" in query:
+        wanted_source = "Budget"
+    elif "policy address" in query_lower or "施政報告" in query:
+        wanted_source = "Policy Address"
+
+    matched = []
+    for item in chunks_data:
+        md = item.get("metadata", {})
+        source_type = md.get("source_type", "")
+        year = str(md.get("year", ""))
+
+        if wanted_source and source_type != wanted_source:
+            continue
+        if years and year not in years:
+            continue
+
+        matched.append(item)
+        if len(matched) >= EXTRA_CONTEXT_LEN:
+            break
+
+    if not matched:
+        return ""
+
+    lines = []
+    for i, item in enumerate(matched, start=1):
+        md = item.get("metadata", {})
+        lines.append(
+            "\\n".join(
+                [
+                    f"[Filtered {i}]",
+                    f"source_type={md.get('source_type', 'Unknown')}; year={md.get('year', 'Unknown')}; file={md.get('filename', 'Unknown')}; page={md.get('page', 'Unknown')}",
+                    item.get("page_content", "").strip(),
+                ]
+            )
+        )
+
+    return "\n\n".join(lines)
 
 
 def get_response(prompt):
@@ -243,19 +406,14 @@ def show_feedback_controls(message_index):
 @st.dialog("Legal disclaimer")
 def show_disclaimer_dialog():
     st.caption("""
-            This AI chatbot is powered by Snowflake and public Streamlit
-            information. Answers may be inaccurate, inefficient, or biased.
+            This AI chatbot is powered by OpenAI and local policy documents.
+            Answers may be inaccurate, inefficient, or biased.
             Any use or decisions based on such answers should include reasonable
             practices including human oversight to ensure they are safe,
-            accurate, and suitable for your intended purpose. Streamlit is not
+            accurate, and suitable for your intended purpose. The project is not
             liable for any actions, losses, or damages resulting from the use
             of the chatbot. Do not enter any private, sensitive, personal, or
-            regulated data. By using this chatbot, you acknowledge and agree
-            that input you provide and answers you receive (collectively,
-            “Content”) may be used by Snowflake to provide, maintain, develop,
-            and improve their respective offerings. For more
-            information on how Snowflake may use your Content, see
-            https://streamlit.io/terms-of-service.
+            regulated data.
         """)
 
 
@@ -378,12 +536,12 @@ if user_message:
         # Build a detailed prompt.
         if DEBUG_MODE:
             with st.status("Computing prompt...") as status:
-                full_prompt = build_question_prompt(user_message)
+                full_prompt, retrieved_context = build_question_prompt(user_message)
                 st.code(full_prompt)
                 status.update(label="Prompt computed")
         else:
             with st.spinner("Researching..."):
-                full_prompt = build_question_prompt(user_message)
+                full_prompt, retrieved_context = build_question_prompt(user_message)
 
         # Send prompt to LLM.
         with st.spinner("Thinking..."):
@@ -394,6 +552,11 @@ if user_message:
         with st.container():
             # Stream the LLM response.
             response = st.write_stream(response_gen)
+
+            retrieved_docs = retrieved_context.get("policy_documents", "")
+            if retrieved_docs:
+                with st.expander("Referenced knowledge chunks", expanded=False):
+                    st.text(retrieved_docs)
 
             # Add messages to chat history.
             st.session_state.messages.append({"role": "user", "content": user_message})
