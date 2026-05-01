@@ -1,0 +1,482 @@
+[
+  {
+    "id": "Q001",
+    "question": "根据2024年施政报告，未来五年（2025-26至2029-30年度）总体公营房屋供应量是多少伙？",
+    "type": "单文档事实题",
+    "difficulty": "简单",
+    "source_doc": "2024_PolicyAddress",
+    "expected_source_hint": "段落158，第43页"
+  },
+  {
+    "id": "Q002",
+    "question": "2024年施政报告中提到，公屋平均轮候时间的历史高峰是几年？截至报告发布时已降至多少年？",
+    "type": "单文档事实题",
+    "difficulty": "简单",
+    "source_doc": "2024_PolicyAddress",
+    "expected_source_hint": "段落158，第43页"
+  },
+  {
+    "id": "Q003",
+    "question": "2024年施政报告提出，「简约公屋」共有多少个单位？全部何时落成？",
+    "type": "单文档事实题",
+    "difficulty": "简单",
+    "source_doc": "2024_PolicyAddress",
+    "expected_source_hint": "段落157、160，第43-44页"
+  },
+  {
+    "id": "Q004",
+    "question": "根据2024年施政报告，北部都会区未来第一个五年将有约多少个房屋单位落成入伙？",
+    "type": "单文档事实题",
+    "difficulty": "简单",
+    "source_doc": "2024_PolicyAddress",
+    "expected_source_hint": "段落139，第39页"
+  },
+  {
+    "id": "Q005",
+    "question": "2024年施政报告中，河套香港园区第一期总楼面面积倍增至多少平方米？",
+    "type": "单文档事实题",
+    "difficulty": "简单",
+    "source_doc": "2024_PolicyAddress",
+    "expected_source_hint": "段落145，第40页"
+  },
+  {
+    "id": "Q006",
+    "question": "根据2024年施政报告，北环线主线计划何年竣工？北都公路（新田段）预计何年开通？",
+    "type": "单文档事实题",
+    "difficulty": "简单",
+    "source_doc": "2024_PolicyAddress",
+    "expected_source_hint": "段落139，第39页"
+  },
+  {
+    "id": "Q007",
+    "question": "2024年施政报告提到，「提前上楼计划」至报告发布时已为多少个家庭提前上楼？为受惠者节省了约多少租金开支？",
+    "type": "单文档事实题",
+    "difficulty": "简单",
+    "source_doc": "2024_PolicyAddress",
+    "expected_source_hint": "段落159，第43页"
+  },
+  {
+    "id": "Q008",
+    "question": "2024年施政报告指出，「向BUD专项基金注资」金额是多少？该基金的全称是什么？",
+    "type": "单文档事实题",
+    "difficulty": "简单",
+    "source_doc": "2024_PolicyAddress",
+    "expected_source_hint": "段落134(ii)，第36页"
+  },
+  {
+    "id": "Q009",
+    "question": "根据2025年施政报告，新田科技城有约多少公顷创科用地？",
+    "type": "单文档事实题",
+    "difficulty": "简单",
+    "source_doc": "2025_PolicyAddress",
+    "expected_source_hint": "段落52，第13页"
+  },
+  {
+    "id": "Q010",
+    "question": "2025年施政报告提出成立「北都发展委员会」，由谁担任主席？",
+    "type": "单文档事实题",
+    "difficulty": "简单",
+    "source_doc": "2025_PolicyAddress",
+    "expected_source_hint": "段落44-45，第10页"
+  },
+  {
+    "id": "Q011",
+    "question": "根据2025年施政报告，「北都发展委员会」下设的三个工作组分别是什么？各由谁任组长？",
+    "type": "单文档事实题",
+    "difficulty": "简单",
+    "source_doc": "2025_PolicyAddress",
+    "expected_source_hint": "段落45(i)(ii)(iii)，第10-11页"
+  },
+  {
+    "id": "Q012",
+    "question": "2025年施政报告中，「AI效能提升组」的组长和副组长分别是哪些职位的官员？",
+    "type": "单文档事实题",
+    "difficulty": "简单",
+    "source_doc": "2025_PolicyAddress",
+    "expected_source_hint": "段落42，第9页"
+  },
+  {
+    "id": "Q013",
+    "question": "根据2025/26年度财政预算案，香港2024年全年GDP实质增长率是多少？",
+    "type": "单文档事实题",
+    "difficulty": "简单",
+    "source_doc": "budget2025",
+    "expected_source_hint": "段落9，第3页"
+  },
+  {
+    "id": "Q014",
+    "question": "2025/26年度财政预算案中，港投公司每一元投资拉动了多少元的长期资金跟投？",
+    "type": "单文档事实题",
+    "difficulty": "简单",
+    "source_doc": "budget2025",
+    "expected_source_hint": "段落60，第16页"
+  },
+  {
+    "id": "Q015",
+    "question": "根据2025/26年度财政预算案，政府预留多少亿元加快完成河套香港园区第一期的基建及公用设施？",
+    "type": "单文档事实题",
+    "difficulty": "简单",
+    "source_doc": "budget2025",
+    "expected_source_hint": "段落65，第18页"
+  },
+  {
+    "id": "Q016",
+    "question": "2025/26年度财政预算案提出，河套香港园区全面发展完成后，对香港经济的年贡献额预计是多少？并创造约多少个职位？",
+    "type": "单文档事实题",
+    "difficulty": "简单",
+    "source_doc": "budget2025",
+    "expected_source_hint": "段落65，第18页"
+  },
+  {
+    "id": "Q017",
+    "question": "根据2025/26年度财政预算案，政府为「制造及生产线『升』级支援先导计划」预留了多少亿元？按什么比例提供配对资助？",
+    "type": "单文档事实题",
+    "difficulty": "简单",
+    "source_doc": "budget2025",
+    "expected_source_hint": "段落47，第14页"
+  },
+  {
+    "id": "Q018",
+    "question": "2026/27年度财政预算案指出，2025年香港整体经济增幅是多少？全年成交量上升至多少宗住宅物业成交？",
+    "type": "单文档事实题",
+    "difficulty": "简单",
+    "source_doc": "budget2026",
+    "expected_source_hint": "段落8、15，第2-3页"
+  },
+  {
+    "id": "Q019",
+    "question": "根据2026/27年度财政预算案，河套香港园区第一期首批落成的两座大楼已有多少间企业落户？出租率约为多少？",
+    "type": "单文档事实题",
+    "difficulty": "简单",
+    "source_doc": "budget2026",
+    "expected_source_hint": "段落66，第16页"
+  },
+  {
+    "id": "Q020",
+    "question": "2026/27年度财政预算案提出，向河套香港园区公司注资多少亿元？向新田科技城公司注资多少亿元起始资金？",
+    "type": "单文档事实题",
+    "difficulty": "简单",
+    "source_doc": "budget2026",
+    "expected_source_hint": "段落67、69，第16-17页"
+  },
+  {
+    "id": "Q021",
+    "question": "2024年施政报告提到公屋综合轮候时间将在何年度降至四年半？「简约公屋」从何时起陆续落成？",
+    "type": "单文档事实题",
+    "difficulty": "中等",
+    "source_doc": "2024_PolicyAddress",
+    "expected_source_hint": "段落158、160，第43-44页"
+  },
+  {
+    "id": "Q022",
+    "question": "根据2024年施政报告，「大湾区青年就业计划」有何新调整？就业津贴上限调整为多少元？",
+    "type": "单文档事实题",
+    "difficulty": "中等",
+    "source_doc": "2024_PolicyAddress",
+    "expected_source_hint": "段落119，第31页"
+  },
+  {
+    "id": "Q023",
+    "question": "2025年施政报告提及，大学城三批土地最早分别将于哪几年供使用？分别位于哪些地区？",
+    "type": "单文档事实题",
+    "difficulty": "中等",
+    "source_doc": "2025_PolicyAddress",
+    "expected_source_hint": "段落45(ii)，第11-12页"
+  },
+  {
+    "id": "Q024",
+    "question": "根据2025/26年度财政预算案，「创科加速器先导计划」预算金额是多少？每家机构最高可获多少配对资助？",
+    "type": "单文档事实题",
+    "difficulty": "中等",
+    "source_doc": "budget2025",
+    "expected_source_hint": "段落51，第14页"
+  },
+  {
+    "id": "Q025",
+    "question": "2026/27年度财政预算案中，「新型工业化资助计划」支持了多少条新智能生产线？带动多少私人投资？",
+    "type": "单文档事实题",
+    "difficulty": "中等",
+    "source_doc": "budget2026",
+    "expected_source_hint": "段落58，第15页"
+  },
+  {
+    "id": "Q026",
+    "question": "根据2025/26年度及2026/27年度财政预算案，政府对北部都会区的核心策略有何延续？两份预算案中分别强调了哪些不同的新举措？",
+    "type": "跨文档综合题",
+    "difficulty": "中等",
+    "source_doc": "budget2025,budget2026",
+    "expected_source_hint": "budget2025段落61-71，budget2026段落63-69"
+  },
+  {
+    "id": "Q027",
+    "question": "比较2024年和2025年施政报告对河套香港园区的描述：在落成进度、入驻企业类型和发展规模上各有何新变化？",
+    "type": "跨文档综合题",
+    "difficulty": "中等",
+    "source_doc": "2024_PolicyAddress,2025_PolicyAddress",
+    "expected_source_hint": "PA2024段落145，PA2025段落50-51"
+  },
+  {
+    "id": "Q028",
+    "question": "2024年施政报告和2025/26财政预算案均提及北都大学教育城，两份文件对其土地规划和发展定位的描述是否一致？有何补充？",
+    "type": "跨文档综合题",
+    "difficulty": "中等",
+    "source_doc": "2024_PolicyAddress,budget2025",
+    "expected_source_hint": "PA2024段落110，budget2025段落61(三)"
+  },
+  {
+    "id": "Q029",
+    "question": "综合2024年施政报告和2025年施政报告，政府对「简约公屋」和「劏房」（简朴房）问题的政策取向有何演变？",
+    "type": "跨文档综合题",
+    "difficulty": "中等",
+    "source_doc": "2024_PolicyAddress,2025_PolicyAddress",
+    "expected_source_hint": "PA2024段落157-165，PA2025第九章房屋部分"
+  },
+  {
+    "id": "Q030",
+    "question": "根据2025/26和2026/27两份财政预算案，香港GDP增速预测有何变化？政府对经济前景的整体判断有何相似与不同？",
+    "type": "跨文档综合题",
+    "difficulty": "中等",
+    "source_doc": "budget2025,budget2026",
+    "expected_source_hint": "budget2025段落22，budget2026段落22"
+  },
+  {
+    "id": "Q031",
+    "question": "2024年施政报告提到，港投公司每一元投资拉动了多少元长期资金？此数据在2025/26财政预算案中有无更新？",
+    "type": "跨文档综合题",
+    "difficulty": "中等",
+    "source_doc": "2024_PolicyAddress,budget2025",
+    "expected_source_hint": "budget2025段落60"
+  },
+  {
+    "id": "Q032",
+    "question": "综合四份文件，政府在人工智能领域的政策部署经历了怎样的演进？从2024年施政报告到2026/27预算案，AI相关政策有哪些新增重点？",
+    "type": "跨文档综合题",
+    "difficulty": "较难",
+    "source_doc": "2024_PolicyAddress,2025_PolicyAddress,budget2025,budget2026",
+    "expected_source_hint": "PA2024第四章，PA2025第四章AI部分，budget2025段落36-52，budget2026 AI+部分"
+  },
+  {
+    "id": "Q033",
+    "question": "从2024年到2026年，政府对北部都会区的投资力度和具体财政承诺有何变化？请综合两份施政报告和两份预算案分析。",
+    "type": "跨文档综合题",
+    "difficulty": "较难",
+    "source_doc": "2024_PolicyAddress,2025_PolicyAddress,budget2025,budget2026",
+    "expected_source_hint": "PA2024段落138-142，PA2025第三章，budget2025段落61-71，budget2026段落63-69"
+  },
+  {
+    "id": "Q034",
+    "question": "综合2025年施政报告和2025/26财政预算案，低空经济的政策发展分为哪几个层面？监管沙盒的首批申请结果如何？",
+    "type": "跨文档综合题",
+    "difficulty": "较难",
+    "source_doc": "2025_PolicyAddress,budget2025",
+    "expected_source_hint": "PA2025段落153-157，budget2025段落56-57"
+  },
+  {
+    "id": "Q035",
+    "question": "政府在两份施政报告和两份财政预算案中均提及绿色发展，请综合这些文件，梳理香港绿色转型政策的三个核心方向及代表性措施。",
+    "type": "跨文档综合题",
+    "difficulty": "较难",
+    "source_doc": "2024_PolicyAddress,2025_PolicyAddress,budget2025,budget2026",
+    "expected_source_hint": "各文件绿色低碳章节"
+  },
+  {
+    "id": "Q036",
+    "question": "根据2024年和2025年施政报告，政府对推动公屋轮候时间缩短设定的具体目标分别是什么？请分析政策连贯性。",
+    "type": "推理分析题",
+    "difficulty": "较难",
+    "source_doc": "2024_PolicyAddress,2025_PolicyAddress",
+    "expected_source_hint": "PA2024段落157-160，PA2025第九章房屋部分"
+  },
+  {
+    "id": "Q037",
+    "question": "综合四份文件，香港「引进重点企业办公室」在吸引企业落户方面有哪些量化成果？这些数据体现了怎样的政策成效？",
+    "type": "推理分析题",
+    "difficulty": "较难",
+    "source_doc": "budget2026",
+    "expected_source_hint": "budget2026段落28(二)"
+  },
+  {
+    "id": "Q038",
+    "question": "2025年施政报告提出「部门首长责任制」，目的是什么？调查机制如何启动？独立调查小组是什么？",
+    "type": "推理分析题",
+    "difficulty": "中等",
+    "source_doc": "2025_PolicyAddress",
+    "expected_source_hint": "段落29-36，第9页"
+  },
+  {
+    "id": "Q039",
+    "question": "根据2025/26财政预算案，香港在《全球创新指数》百强科技集群中排名如何？该排名已持续多少年？",
+    "type": "推理分析题",
+    "difficulty": "中等",
+    "source_doc": "budget2025",
+    "expected_source_hint": "段落53，第15页"
+  },
+  {
+    "id": "Q040",
+    "question": "从2025/26和2026/27两份财政预算案来看，政府的「强化版财政整合计划」目标是什么？到2026年的执行情况如何？",
+    "type": "推理分析题",
+    "difficulty": "较难",
+    "source_doc": "budget2025,budget2026",
+    "expected_source_hint": "budget2025段落6、229，budget2026段落3、256-265"
+  },
+  {
+    "id": "Q041",
+    "question": "综合两份施政报告，政府推动香港成为「国际医疗创新枢纽」的核心策略有哪些？政策路径是否一致？",
+    "type": "推理分析题",
+    "difficulty": "较难",
+    "source_doc": "2024_PolicyAddress,2025_PolicyAddress",
+    "expected_source_hint": "PA2024段落93-95，PA2025第九章医疗健康部分"
+  },
+  {
+    "id": "Q042",
+    "question": "根据2026/27财政预算案，「产学研1+计划」已批出多少个项目？涵盖哪些领域？",
+    "type": "推理分析题",
+    "difficulty": "中等",
+    "source_doc": "budget2026",
+    "expected_source_hint": "段落86，第19页"
+  },
+  {
+    "id": "Q043",
+    "question": "综合2025年施政报告和2026/27预算案，政府在低空经济领域的政策从「监管沙盒测试」演进到「商业营运」，具体体现在哪些措施？",
+    "type": "推理分析题",
+    "difficulty": "较难",
+    "source_doc": "2025_PolicyAddress,budget2026",
+    "expected_source_hint": "PA2025段落153-157，budget2026段落70-72"
+  },
+  {
+    "id": "Q044",
+    "question": "2025年施政报告提到大湾区医疗合作，是否提及将「长者医疗券大湾区试点计划」扩展到大湾区九个内地城市？",
+    "type": "否定题/边界题",
+    "difficulty": "中等",
+    "source_doc": "2024_PolicyAddress",
+    "expected_source_hint": "PA2024段落154，第42页（注意：此政策出现在2024年报告，非2025年）"
+  },
+  {
+    "id": "Q045",
+    "question": "2024年施政报告是否明确提出废除强积金制度？",
+    "type": "否定题/边界题",
+    "difficulty": "简单",
+    "source_doc": "2024_PolicyAddress",
+    "expected_source_hint": "文档中无此内容，答案为否"
+  },
+  {
+    "id": "Q046",
+    "question": "2025/26年度财政预算案是否宣布全面撤销印花税？",
+    "type": "否定题/边界题",
+    "difficulty": "简单",
+    "source_doc": "budget2025",
+    "expected_source_hint": "文档中无此内容，答案为否"
+  },
+  {
+    "id": "Q047",
+    "question": "根据政策文件，政府是否在2024年施政报告中提出兴建第四所医学院？",
+    "type": "否定题/边界题",
+    "difficulty": "中等",
+    "source_doc": "2024_PolicyAddress",
+    "expected_source_hint": "PA2024段落190提及支持第三所医学院，非第四所"
+  },
+  {
+    "id": "Q048",
+    "question": "2026/27财政预算案是否宣布香港GDP已达到双位数增长？",
+    "type": "否定题/边界题",
+    "difficulty": "简单",
+    "source_doc": "budget2026",
+    "expected_source_hint": "2025年GDP增长3.5%，非双位数；见段落8"
+  },
+  {
+    "id": "Q049",
+    "question": "2025年施政报告是否提及将「一签多行」深圳个人游签注已经正式恢复？",
+    "type": "否定题/边界题",
+    "difficulty": "中等",
+    "source_doc": "2024_PolicyAddress,2025_PolicyAddress",
+    "expected_source_hint": "PA2024段落132仅提「向中央提出请求」；检查PA2025是否有落实公告"
+  },
+  {
+    "id": "Q050",
+    "question": "根据两份施政报告，政府是否已完成制定「加快发展北都」的专属法律并实施？",
+    "type": "否定题/边界题",
+    "difficulty": "中等",
+    "source_doc": "2024_PolicyAddress,2025_PolicyAddress",
+    "expected_source_hint": "PA2025段落48提及「会订立专属法例」，尚在规划阶段"
+  },
+  {
+    "id": "Q051",
+    "question": "2026/27财政预算案是否提到政府已完全消除财政赤字，实现盈余？",
+    "type": "否定题/边界题",
+    "difficulty": "中等",
+    "source_doc": "budget2026",
+    "expected_source_hint": "段落3提经营账目恢复盈余，但综合账目情况需核查"
+  },
+  {
+    "id": "Q052",
+    "question": "根据2025/26年度财政预算案，政府就「新田科技城」首批20公顷土地计划何时推出市场？此信息与2025年施政报告是否一致？",
+    "type": "否定题/边界题",
+    "difficulty": "较难",
+    "source_doc": "2024_PolicyAddress,budget2025",
+    "expected_source_hint": "PA2024段落140提2026-27年起，budget2025段落66提2026/27年，需对比核实"
+  },
+  {
+    "id": "Q053",
+    "question": "According to the 2025 Policy Address, what are the three working groups under the Northern Metropolis Development Committee, and who chairs each group?",
+    "type": "中英交叉题",
+    "difficulty": "中等",
+    "source_doc": "2025_PolicyAddress",
+    "expected_source_hint": "段落45(i)(ii)(iii)，第10-11页"
+  },
+  {
+    "id": "Q054",
+    "question": "What is the expected GDP growth rate for Hong Kong in 2025, as stated in the 2025-26 Budget?",
+    "type": "中英交叉题",
+    "difficulty": "简单",
+    "source_doc": "budget2025",
+    "expected_source_hint": "段落22，第5页"
+  },
+  {
+    "id": "Q055",
+    "question": "According to the 2026-27 Budget, how many enterprises have been attracted by the Office for Attracting Strategic Enterprises (OASES), and how many of them have set up global or regional headquarters in Hong Kong?",
+    "type": "中英交叉题",
+    "difficulty": "中等",
+    "source_doc": "budget2026",
+    "expected_source_hint": "段落28(二)，第6页"
+  },
+  {
+    "id": "Q056",
+    "question": "Based on the 2024 Policy Address, what is the total planned public housing supply for the five-year period from 2025-26 to 2029-30, and how does it compare to the previous five-year period?",
+    "type": "中英交叉题",
+    "difficulty": "中等",
+    "source_doc": "2024_PolicyAddress",
+    "expected_source_hint": "段落158，第43页"
+  },
+  {
+    "id": "Q057",
+    "question": "According to the 2025 Policy Address, what is the planned area of innovation and technology land in San Tin Technopolis, and when will the conceptual framework for its development be released?",
+    "type": "中英交叉题",
+    "difficulty": "中等",
+    "source_doc": "2025_PolicyAddress",
+    "expected_source_hint": "段落52，第13页"
+  },
+  {
+    "id": "Q058",
+    "question": "What does the 2026-27 Budget say about the Hang Seng Index performance in 2025 and the total market capitalisation of Hong Kong's stock market?",
+    "type": "中英交叉题",
+    "difficulty": "中等",
+    "source_doc": "budget2026",
+    "expected_source_hint": "段落14、28(一)，第3、6页"
+  },
+  {
+    "id": "Q059",
+    "question": "According to the 2025-26 Budget, what is the expected annual economic contribution of the Lok Ma Chau Loop (Hong Kong Park) upon full development, and how many jobs is it estimated to create?",
+    "type": "中英交叉题",
+    "difficulty": "中等",
+    "source_doc": "budget2025",
+    "expected_source_hint": "段落65，第18页"
+  },
+  {
+    "id": "Q060",
+    "question": "Based on the 2024 Policy Address, what specific measures were announced to develop the silver economy, and which government official leads this initiative?",
+    "type": "中英交叉题",
+    "difficulty": "较难",
+    "source_doc": "2024_PolicyAddress",
+    "expected_source_hint": "段落135-136，第37页"
+  }
+]

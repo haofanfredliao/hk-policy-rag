@@ -1,6 +1,6 @@
 from htbuilder.units import rem
 from htbuilder import div, styles
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 from concurrent.futures import ThreadPoolExecutor
 import datetime
 import json
@@ -17,243 +17,698 @@ from openai import OpenAI
 
 load_dotenv()
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
-st.set_page_config(page_title="HK Policy AI Assistant", page_icon="✨")
+st.set_page_config(page_title="HK Policy AI Assistant", page_icon="✨", layout="wide")
 
 # -----------------------------------------------------------------------------
-# Set things up.
+# Constants & Paths
 
 executor = ThreadPoolExecutor(max_workers=5)
 
-MODEL = "gpt-4o-mini"
-EMBEDDING_MODEL = "text-embedding-3-small"
-
 HISTORY_LENGTH = 5
 SUMMARIZE_OLD_HISTORY = True
-# Number of context chunks to retrieve per RAG source (set > 0 to enable when
-# the retrieval backends are wired up).
 DOCS_CONTEXT_LEN = 10
 EXTRA_CONTEXT_LEN = 10
 MIN_TIME_BETWEEN_REQUESTS = datetime.timedelta(seconds=3)
 
 PROJECT_DIR = Path(__file__).resolve().parent
-CHUNKS_FILE = PROJECT_DIR / "hk_policy_chunks.json"
-INDEX_DIR = PROJECT_DIR / ".rag_index"
-INDEX_FILE = INDEX_DIR / "hk_policy.faiss"
-METADATA_FILE = INDEX_DIR / "metadata.json"
+DATA_PROCESSED_DIR = PROJECT_DIR / "data" / "data_processed"
+INDEX_BASE_DIR = PROJECT_DIR / ".rag_index"
 EMBEDDING_BATCH_SIZE = 100
 
 DEBUG_MODE = st.query_params.get("debug", "false").lower() == "true"
 
-INSTRUCTIONS = textwrap.dedent("""
-    - You are a helpful AI assistant that answers questions about Hong Kong
-      government policies, regulations, and public affairs.
-    - You will be given extra information provided inside tags like this
-      <foo></foo>.
-    - Use context and history to provide a coherent answer.
-    - Use markdown such as headers (starting with ##), code blocks, bullet
-      points, indentation for sub bullets, and backticks for inline code.
-    - Don't start the response with a markdown header.
-    - Be clear and accurate. Cite sources when available in the context.
-    - Don't say things like "according to the provided context".
-    - If you are unsure, say so rather than guessing.
-""")
+CHUNK_FILES = [
+    "hk_policy_chunks.json",
+    "legco_hansard_chunks.json",
+    "Public_Open_Space_chunks.json",
+    "Public_Transport_Nodes_chunks.json",
+]
 
-SUGGESTIONS = {
-    ":blue[:material/local_library:] 什麼是《基本法》?": (
-        "簡介香港《基本法》的主要內容和重要性。"
-    ),
-    ":green[:material/gavel:] 香港的行政架構": (
-        "香港特別行政區的行政架構是怎樣的？行政長官的職責是什麼？"
-    ),
-    ":orange[:material/apartment:] 房屋政策": (
-        "香港目前的房屋政策有哪些？公營房屋申請資格是什麼？"
-    ),
-    ":violet[:material/balance:] 法律體系": (
-        "香港採用什麼法律體系？與內地法律有何不同？"
-    ),
-    ":red[:material/public:] 社會福利政策": (
-        "香港有哪些主要的社會福利政策和援助計劃？"
-    ),
+# -----------------------------------------------------------------------------
+# Model & Config Registries  (language-neutral internal keys)
+
+LLM_MODELS = {
+    "gpt-4o-mini":  {"provider": "openai", "model_id": "gpt-4o-mini"},
+    "gpt-4o":       {"provider": "openai", "model_id": "gpt-4o"},
+    "gpt-4.1":      {"provider": "openai", "model_id": "gpt-4.1"},
+    "gpt-4.1-mini": {"provider": "openai", "model_id": "gpt-4.1-mini"},
+    "grok-3":       {"provider": "xai",    "model_id": "grok-3"},
+    "grok-3-fast":  {"provider": "xai",    "model_id": "grok-3-fast"},
 }
 
+LLM_MODEL_LABELS = {
+    "en": {
+        "gpt-4o-mini":  "GPT-4o mini (Default)",
+        "gpt-4o":       "GPT-4o",
+        "gpt-4.1":      "GPT-4.1",
+        "gpt-4.1-mini": "GPT-4.1 mini",
+        "grok-3":       "xAI Grok 3",
+        "grok-3-fast":  "xAI Grok 3 Fast",
+    },
+    "zh-cn": {
+        "gpt-4o-mini":  "GPT-4o mini（默认）",
+        "gpt-4o":       "GPT-4o",
+        "gpt-4.1":      "GPT-4.1",
+        "gpt-4.1-mini": "GPT-4.1 mini",
+        "grok-3":       "xAI Grok 3",
+        "grok-3-fast":  "xAI Grok 3 Fast",
+    },
+    "zh-tw": {
+        "gpt-4o-mini":  "GPT-4o mini（預設）",
+        "gpt-4o":       "GPT-4o",
+        "gpt-4.1":      "GPT-4.1",
+        "gpt-4.1-mini": "GPT-4.1 mini",
+        "grok-3":       "xAI Grok 3",
+        "grok-3-fast":  "xAI Grok 3 Fast",
+    },
+}
 
-def build_prompt(**kwargs):
-    """Builds a prompt string with the kwargs as HTML-like tags.
+EMBEDDING_MODELS = {
+    "openai-small": {
+        "provider": "openai",
+        "model_id": "text-embedding-3-small",
+        "dim": 1536,
+        "index_subdir": "openai_small",
+    },
+    "openai-large": {
+        "provider": "openai",
+        "model_id": "text-embedding-3-large",
+        "dim": 3072,
+        "index_subdir": "openai_large",
+    },
+    "bge-small-zh": {
+        "provider": "huggingface",
+        "model_id": "BAAI/bge-small-zh-v1.5",
+        "dim": 512,
+        "index_subdir": "hf_bge_small_zh",
+    },
+    "bge-m3": {
+        "provider": "huggingface",
+        "model_id": "BAAI/bge-m3",
+        "dim": 1024,
+        "index_subdir": "hf_bge_m3",
+    },
+}
 
-    For example, this:
+EMBEDDING_MODEL_LABELS = {
+    "en": {
+        "openai-small": "OpenAI text-embedding-3-small (Default)",
+        "openai-large": "OpenAI text-embedding-3-large",
+        "bge-small-zh": "BAAI/bge-small-zh-v1.5 (Open Source)",
+        "bge-m3":       "BAAI/bge-m3 (Open Source, Multilingual)",
+    },
+    "zh-cn": {
+        "openai-small": "OpenAI text-embedding-3-small（默认）",
+        "openai-large": "OpenAI text-embedding-3-large",
+        "bge-small-zh": "BAAI/bge-small-zh-v1.5（开源）",
+        "bge-m3":       "BAAI/bge-m3（开源多语言）",
+    },
+    "zh-tw": {
+        "openai-small": "OpenAI text-embedding-3-small（預設）",
+        "openai-large": "OpenAI text-embedding-3-large",
+        "bge-small-zh": "BAAI/bge-small-zh-v1.5（開源）",
+        "bge-m3":       "BAAI/bge-m3（開源多語言）",
+    },
+}
 
-        build_prompt(foo="1\n2\n3", bar="4\n5\n6")
+RAG_CONFIGS = {
+    "rag-optimized": {
+        "use_rag": True,
+        "k": 10,
+        "merge_chunks": True,
+        "filter_by_year": True,
+    },
+    "rag-basic": {
+        "use_rag": True,
+        "k": 10,
+        "merge_chunks": True,
+        "filter_by_year": False,
+    },
+    "baseline": {
+        "use_rag": False,
+        "k": 0,
+        "merge_chunks": False,
+        "filter_by_year": False,
+    },
+}
 
-    ...returns:
+RAG_CONFIG_LABELS = {
+    "en": {
+        "rag-optimized": "RAG-Optimized (Recommended)",
+        "rag-basic":     "RAG-Basic",
+        "baseline":      "Baseline (No Retrieval)",
+    },
+    "zh-cn": {
+        "rag-optimized": "RAG-优化版（推荐）",
+        "rag-basic":     "RAG-基础版",
+        "baseline":      "Baseline（无检索）",
+    },
+    "zh-tw": {
+        "rag-optimized": "RAG-優化版（推薦）",
+        "rag-basic":     "RAG-基礎版",
+        "baseline":      "Baseline（無檢索）",
+    },
+}
 
-        '''
-        <foo>
-        1
-        2
-        3
-        </foo>
-        <bar>
-        4
-        5
-        6
-        </bar>
-        '''
-    """
-    prompt = []
+RAG_CONFIG_DESCRIPTIONS = {
+    "en": {
+        "rag-optimized": "RAG optimised: k=10, merge adjacent chunks, sort by year",
+        "rag-basic":     "RAG basic: k=10, merge adjacent chunks",
+        "baseline":      "Direct LLM query — no document retrieval",
+    },
+    "zh-cn": {
+        "rag-optimized": "RAG 优化配置：k=10，合并相邻 chunk，按年份排序",
+        "rag-basic":     "RAG 基础配置：k=10，合并相邻 chunk",
+        "baseline":      "直接问 LLM，无文档检索",
+    },
+    "zh-tw": {
+        "rag-optimized": "RAG 優化配置：k=10，合併相鄰 chunk，按年份排序",
+        "rag-basic":     "RAG 基礎配置：k=10，合併相鄰 chunk",
+        "baseline":      "直接問 LLM，無文件檢索",
+    },
+}
 
-    for name, contents in kwargs.items():
-        if contents:
-            prompt.append(f"<{name}>\n{contents}\n</{name}>")
+# -----------------------------------------------------------------------------
+# i18n: UI String Translations
 
-    prompt_str = "\n".join(prompt)
-
-    return prompt_str
-
-
-# Just some little objects to make tasks more readable.
-TaskInfo = namedtuple("TaskInfo", ["name", "function", "args"])
-TaskResult = namedtuple("TaskResult", ["name", "result"])
-
-
-def build_question_prompt(question):
-    """Fetches info from different sources and creates the prompt string."""
-    old_history = st.session_state.messages[:-HISTORY_LENGTH]
-    recent_history = st.session_state.messages[-HISTORY_LENGTH:]
-
-    if recent_history:
-        recent_history_str = history_to_text(recent_history)
-    else:
-        recent_history_str = None
-
-    # Fetch information from different RAG sources in parallel.
-    task_infos = []
-
-    if SUMMARIZE_OLD_HISTORY and old_history:
-        task_infos.append(
-            TaskInfo(
-                name="old_message_summary",
-                function=generate_chat_summary,
-                args=(old_history,),
-            )
-        )
-
-    if DOCS_CONTEXT_LEN:
-        task_infos.append(
-            TaskInfo(
-                name="policy_documents",
-                function=search_relevant_docs,
-                args=(question,),
-            )
-        )
-
-    if EXTRA_CONTEXT_LEN:
-        task_infos.append(
-            TaskInfo(
-                name="extra_context",
-                function=search_extra_context,
-                args=(question,),
-            )
-        )
-
-    results = executor.map(
-        lambda task_info: TaskResult(
-            name=task_info.name,
-            result=task_info.function(*task_info.args),
+TRANSLATIONS = {
+    "en": {
+        # Sidebar
+        "lang_label":           "🌐 Language",
+        "sidebar_header":       "⚙️ Settings",
+        "llm_section":          "🤖 AI Model",
+        "xai_warning":          "Set GROK_API_KEY in .env to use xAI models.",
+        "rag_section":          "🔍 RAG Retrieval Mode",
+        "rag_k_label":          "Retrieved docs (k)",
+        "rag_merge_label":      "Merge adjacent chunks",
+        "rag_sort_label":       "Sort by year (newest first)",
+        "embedding_section":    "📐 Embedding Model",
+        "hf_info":              "Open-source model will be downloaded from HuggingFace on first use. This may take a few minutes.",
+        "index_ready":          "Index ready",
+        "index_missing":        "Index not built. Will be built automatically on first query.",
+        "metrics_section":      "📊 Evaluation Metrics",
+        "metrics_caption":      "Based on 60 test questions (Grok + HuggingFace Embedding):",
+        "metrics_note":         "Baseline accuracy only 3%. RAG significantly improves answer quality.",
+        # Main UI
+        "page_title":           "HK Policy AI Assistant",
+        "chat_placeholder":     "Ask a question...",
+        "chat_followup":        "Ask a follow-up...",
+        "restart_button":       "Restart",
+        "disclaimer_btn":       "&nbsp;:small[:gray[:material/balance: Legal disclaimer]]",
+        # Spinners
+        "spinner_waiting":      "Waiting...",
+        "spinner_researching":  "Researching... ({rag})",
+        "spinner_thinking":     "Thinking... ({llm})",
+        "spinner_prompt":       "Computing prompt...",
+        "spinner_prompt_done":  "Prompt computed",
+        # Feedback
+        "feedback_btn":         "How did I do?",
+        "feedback_rating":      "Rating",
+        "feedback_detail":      "More information (optional)",
+        "feedback_history":     "Include chat history with my feedback",
+        "feedback_submit":      "Send feedback",
+        # Chunks expander
+        "chunks_expander":      "Referenced knowledge chunks",
+        # Disclaimer dialog
+        "disclaimer_title":     "Legal disclaimer",
+        "disclaimer_text": (
+            "This AI chatbot is powered by OpenAI and local policy documents. "
+            "Answers may be inaccurate, inefficient, or biased. "
+            "Any use or decisions based on such answers should include reasonable "
+            "practices including human oversight to ensure they are safe, accurate, "
+            "and suitable for your intended purpose. The project is not liable for "
+            "any actions, losses, or damages resulting from the use of the chatbot. "
+            "Do not enter any private, sensitive, personal, or regulated data."
         ),
-        task_infos,
+        # LLM instruction language directive
+        "lang_directive": "",
+    },
+    "zh-cn": {
+        "lang_label":           "🌐 语言",
+        "sidebar_header":       "⚙️ 模型配置",
+        "llm_section":          "🤖 AI 基座模型",
+        "xai_warning":          "请在 .env 中设置 GROK_API_KEY 以使用 xAI 模型。",
+        "rag_section":          "🔍 RAG 检索模式",
+        "rag_k_label":          "检索文档数 k",
+        "rag_merge_label":      "合并相邻 chunk",
+        "rag_sort_label":       "按年份排序（优先最新）",
+        "embedding_section":    "📐 Embedding 模型",
+        "hf_info":              "开源模型首次使用时需从 HuggingFace 下载，可能需要几分钟。",
+        "index_ready":          "索引已就绪",
+        "index_missing":        "索引未构建，首次提问时将自动构建。",
+        "metrics_section":      "📊 评测参考指标",
+        "metrics_caption":      "基于 60 道测试题的评测结果（Grok + HuggingFace Embedding）：",
+        "metrics_note":         "Baseline 准确率仅 3%，RAG 显著提升回答质量。",
+        "page_title":           "香港政策 AI 助手",
+        "chat_placeholder":     "请输入问题…",
+        "chat_followup":        "继续提问…",
+        "restart_button":       "重新开始",
+        "disclaimer_btn":       "&nbsp;:small[:gray[:material/balance: 法律免责声明]]",
+        "spinner_waiting":      "请稍候…",
+        "spinner_researching":  "正在检索… ({rag})",
+        "spinner_thinking":     "正在思考… ({llm})",
+        "spinner_prompt":       "正在构建提示词…",
+        "spinner_prompt_done":  "提示词已构建",
+        "feedback_btn":         "回答如何？",
+        "feedback_rating":      "评分",
+        "feedback_detail":      "更多信息（可选）",
+        "feedback_history":     "附上对话历史",
+        "feedback_submit":      "提交反馈",
+        "chunks_expander":      "参考知识块",
+        "disclaimer_title":     "法律免责声明",
+        "disclaimer_text": (
+            "本 AI 聊天机器人由 OpenAI 和本地政策文件驱动。"
+            "回答可能不准确、效率低下或存在偏差。"
+            "任何基于此回答的使用或决策均应采取合理措施，包括人工监督，"
+            "以确保其安全、准确并适合预期用途。"
+            "本项目不对因使用本聊天机器人而导致的任何行为、损失或损害承担责任。"
+            "请勿输入任何私人、敏感、个人或受监管的数据。"
+        ),
+        "lang_directive": "请用简体中文回答。",
+    },
+    "zh-tw": {
+        "lang_label":           "🌐 語言",
+        "sidebar_header":       "⚙️ 模型配置",
+        "llm_section":          "🤖 AI 基礎模型",
+        "xai_warning":          "請在 .env 中設定 GROK_API_KEY 以使用 xAI 模型。",
+        "rag_section":          "🔍 RAG 檢索模式",
+        "rag_k_label":          "檢索文件數 k",
+        "rag_merge_label":      "合併相鄰 chunk",
+        "rag_sort_label":       "按年份排序（優先最新）",
+        "embedding_section":    "📐 Embedding 模型",
+        "hf_info":              "開源模型首次使用時需從 HuggingFace 下載，可能需要幾分鐘。",
+        "index_ready":          "索引已就緒",
+        "index_missing":        "索引未構建，首次提問時將自動構建。",
+        "metrics_section":      "📊 評測參考指標",
+        "metrics_caption":      "基於 60 道測試題的評測結果（Grok + HuggingFace Embedding）：",
+        "metrics_note":         "Baseline 準確率僅 3%，RAG 顯著提升回答質量。",
+        "page_title":           "香港政策 AI 助手",
+        "chat_placeholder":     "請輸入問題…",
+        "chat_followup":        "繼續提問…",
+        "restart_button":       "重新開始",
+        "disclaimer_btn":       "&nbsp;:small[:gray[:material/balance: 法律免責聲明]]",
+        "spinner_waiting":      "請稍候…",
+        "spinner_researching":  "正在檢索… ({rag})",
+        "spinner_thinking":     "正在思考… ({llm})",
+        "spinner_prompt":       "正在構建提示詞…",
+        "spinner_prompt_done":  "提示詞已構建",
+        "feedback_btn":         "回答如何？",
+        "feedback_rating":      "評分",
+        "feedback_detail":      "更多資訊（可選）",
+        "feedback_history":     "附上對話歷史",
+        "feedback_submit":      "提交反饋",
+        "chunks_expander":      "參考知識塊",
+        "disclaimer_title":     "法律免責聲明",
+        "disclaimer_text": (
+            "本 AI 聊天機器人由 OpenAI 及本地政策文件驅動。"
+            "回答可能不準確、效率低下或存在偏差。"
+            "任何基於此回答的使用或決策均應採取合理措施，包括人工監督，"
+            "以確保其安全、準確並適合預期用途。"
+            "本項目不對因使用本聊天機器人而導致的任何行為、損失或損害承擔責任。"
+            "請勿輸入任何私人、敏感、個人或受監管的資料。"
+        ),
+        "lang_directive": "請以繁體中文回答。",
+    },
+}
+
+# -----------------------------------------------------------------------------
+# Suggested questions per language (chosen from eval results with total_score >= 5)
+
+SUGGESTIONS_BY_LANG = {
+    "en": {
+        ":blue[:material/apartment:] Lok Ma Chau Loop": (
+            "According to the 2024 Policy Address, to what total floor area was Phase 1 of the Lok Ma Chau Loop (Hong Kong Park) expanded?"
+        ),
+        ":green[:material/home:] Early Move-in Scheme": (
+            "According to the 2024 Policy Address, how many families have benefited from the Early Move-in Scheme, and how much rental expenditure has been saved for beneficiaries?"
+        ),
+        ":orange[:material/work:] GBA Youth Employment": (
+            "According to the 2024 Policy Address, what adjustments were made to the Greater Bay Area Youth Employment Scheme, and what is the new employment allowance cap?"
+        ),
+        ":violet[:material/science:] New Industrialisation": (
+            "According to the 2026-27 Budget, how many new smart production lines has the New Industrialisation Funding Scheme supported, and how much private investment has been leveraged?"
+        ),
+        ":red[:material/account_balance:] Head of Dept. Accountability": (
+            "According to the 2025 Policy Address, what is the purpose of the Head of Department Accountability System? How is the investigation mechanism triggered, and what is the Independent Review Panel?"
+        ),
+    },
+    "zh-cn": {
+        ":blue[:material/apartment:] 河套园区进展": (
+            "2024年施政报告中，河套香港园区第一期总楼面面积倍增至多少平方米？"
+        ),
+        ":green[:material/home:] 提前上楼计划": (
+            "2024年施政报告提到，「提前上楼计划」至报告发布时已为多少个家庭提前上楼？为受惠者节省了约多少租金开支？"
+        ),
+        ":orange[:material/work:] 大湾区青年就业": (
+            "根据2024年施政报告，「大湾区青年就业计划」有何新调整？就业津贴上限调整为多少元？"
+        ),
+        ":violet[:material/science:] 新型工业化": (
+            "2026/27年度财政预算案中，「新型工业化资助计划」支持了多少条新智能生产线？带动多少私人投资？"
+        ),
+        ":red[:material/account_balance:] 部门首长责任制": (
+            "2025年施政报告提出「部门首长责任制」，目的是什么？调查机制如何启动？独立调查小组是什么？"
+        ),
+    },
+    "zh-tw": {
+        ":blue[:material/apartment:] 河套園區進展": (
+            "2024年施政報告中，河套香港園區第一期總樓面面積倍增至多少平方米？"
+        ),
+        ":green[:material/home:] 提前上樓計劃": (
+            "2024年施政報告提到，「提前上樓計劃」至報告發布時已為多少個家庭提前上樓？為受惠者節省了約多少租金開支？"
+        ),
+        ":orange[:material/work:] 大灣區青年就業": (
+            "根據2024年施政報告，「大灣區青年就業計劃」有何新調整？就業津貼上限調整為多少元？"
+        ),
+        ":violet[:material/science:] 新型工業化": (
+            "2026/27年度財政預算案中，「新型工業化資助計劃」支持了多少條新智能生產線？帶動多少私人投資？"
+        ),
+        ":red[:material/account_balance:] 部門首長責任制": (
+            "2025年施政報告提出「部門首長責任制」，目的是什麼？調查機制如何啟動？獨立調查小組是什麼？"
+        ),
+    },
+}
+
+# -----------------------------------------------------------------------------
+# Language selector (must render before the rest of the sidebar)
+
+with st.sidebar:
+    selected_lang = st.selectbox(
+        "🌐 Language",
+        options=["en", "zh-cn", "zh-tw"],
+        format_func=lambda x: {"en": "English", "zh-cn": "简体中文", "zh-tw": "繁體中文"}[x],
+        index=0,
+        key="lang",
+        label_visibility="collapsed",
     )
 
-    context = {name: result for name, result in results}
-    # Drop empty context entries so they don't clutter the prompt.
-    context = {k: v for k, v in context.items() if v}
+t = TRANSLATIONS[selected_lang]
+suggestions = SUGGESTIONS_BY_LANG[selected_lang]
 
-    prompt = build_prompt(
-        instructions=INSTRUCTIONS,
-        **context,
-        recent_messages=recent_history_str,
-        question=question,
-    )
-    return prompt, context
+# -----------------------------------------------------------------------------
+# RAG Logic (ported from batch_eval.py)
+
+def merge_adjacent_chunks(docs):
+    """Merges adjacent chunks from the same document."""
+    if not docs:
+        return docs
+
+    grouped = defaultdict(list)
+    for doc in docs:
+        filename = doc.get("metadata", {}).get("filename", "unknown")
+        grouped[filename].append(doc)
+
+    merged_docs = []
+    for filename, doc_list in grouped.items():
+        doc_list.sort(
+            key=lambda d: d.get("metadata", {}).get("page", 0)
+            if d.get("metadata", {}).get("page") is not None
+            else 0
+        )
+
+        merged_blocks = []
+        current_block = None
+        for doc in doc_list:
+            page = doc.get("metadata", {}).get("page")
+            if page is None:
+                merged_blocks.append(doc)
+                continue
+            try:
+                page = int(page)
+            except (ValueError, TypeError):
+                merged_blocks.append(doc)
+                continue
+
+            if current_block is None:
+                current_block = {
+                    "docs": [doc],
+                    "start_page": page,
+                    "end_page": page,
+                    "texts": [doc.get("page_content", "")],
+                }
+            else:
+                if page - current_block["end_page"] <= 1:
+                    current_block["docs"].append(doc)
+                    current_block["end_page"] = page
+                    current_block["texts"].append(doc.get("page_content", ""))
+                else:
+                    merged_text = "\n\n".join(current_block["texts"])
+                    merged_meta = current_block["docs"][0].get("metadata", {}).copy()
+                    merged_meta["start_page"] = current_block["start_page"]
+                    merged_meta["end_page"] = current_block["end_page"]
+                    merged_meta["page"] = f"{current_block['start_page']}-{current_block['end_page']}"
+                    merged_blocks.append({"page_content": merged_text, "metadata": merged_meta})
+                    current_block = {
+                        "docs": [doc],
+                        "start_page": page,
+                        "end_page": page,
+                        "texts": [doc.get("page_content", "")],
+                    }
+
+        if current_block:
+            merged_text = "\n\n".join(current_block["texts"])
+            merged_meta = current_block["docs"][0].get("metadata", {}).copy()
+            merged_meta["start_page"] = current_block["start_page"]
+            merged_meta["end_page"] = current_block["end_page"]
+            merged_meta["page"] = f"{current_block['start_page']}-{current_block['end_page']}"
+            merged_blocks.append({"page_content": merged_text, "metadata": merged_meta})
+
+        merged_docs.extend(merged_blocks)
+
+    return merged_docs
 
 
-def generate_chat_summary(messages):
-    """Summarizes the chat history in `messages`."""
-    prompt = build_prompt(
-        instructions="Summarize this conversation as concisely as possible.",
-        conversation=history_to_text(messages),
-    )
-    response = client.chat.completions.create(
-        model=MODEL,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    return response.choices[0].message.content
+# -----------------------------------------------------------------------------
+# Embedding Functions
 
-
-def history_to_text(chat_history):
-    """Converts chat history into a string."""
-    return "\n".join(f"[{h['role']}]: {h['content']}" for h in chat_history)
-
-
-def _embed_texts(texts):
-    response = client.embeddings.create(model=EMBEDDING_MODEL, input=texts)
+def _embed_texts_openai(texts, model_id="text-embedding-3-small"):
+    openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    response = openai_client.embeddings.create(model=model_id, input=texts)
     return [item.embedding for item in response.data]
 
 
-def _load_chunks_data():
-    if not CHUNKS_FILE.exists():
-        return []
-    with CHUNKS_FILE.open("r", encoding="utf-8") as f:
-        return json.load(f)
+def _embed_texts_huggingface(texts, model_id="BAAI/bge-small-zh-v1.5"):
+    from langchain_huggingface import HuggingFaceEmbeddings
+    hf_model = HuggingFaceEmbeddings(model_name=model_id)
+    return hf_model.embed_documents(texts)
 
 
-def _build_and_persist_index(chunks_data):
+def embed_texts(texts, embedding_cfg):
+    if embedding_cfg["provider"] == "openai":
+        return _embed_texts_openai(texts, embedding_cfg["model_id"])
+    elif embedding_cfg["provider"] == "huggingface":
+        return _embed_texts_huggingface(texts, embedding_cfg["model_id"])
+    raise ValueError(f"Unknown embedding provider: {embedding_cfg['provider']}")
+
+
+def embed_query(query, embedding_cfg):
+    if embedding_cfg["provider"] == "openai":
+        return _embed_texts_openai([query], embedding_cfg["model_id"])[0]
+    elif embedding_cfg["provider"] == "huggingface":
+        from langchain_huggingface import HuggingFaceEmbeddings
+        hf_model = HuggingFaceEmbeddings(model_name=embedding_cfg["model_id"])
+        return hf_model.embed_query(query)
+    raise ValueError(f"Unknown embedding provider: {embedding_cfg['provider']}")
+
+
+# -----------------------------------------------------------------------------
+# Data Loading
+
+@st.cache_data
+def get_all_chunks_data():
+    """Loads all chunk JSON files from data/data_processed/."""
+    all_chunks = []
+    for fname in CHUNK_FILES:
+        path = DATA_PROCESSED_DIR / fname
+        if not path.exists():
+            path = PROJECT_DIR / fname
+        if not path.exists():
+            continue
+        with path.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+        for item in data:
+            text = item.get("page_content") or item.get("content", "")
+            if not text:
+                continue
+            meta = item.get("metadata", {}).copy()
+            if "page" not in meta:
+                meta["page"] = None
+            if "year" not in meta:
+                if "date" in meta and isinstance(meta["date"], str):
+                    meta["year"] = meta["date"][:4]
+                else:
+                    meta["year"] = None
+            if "filename" not in meta:
+                meta["filename"] = meta.get("source", fname)
+            if "source_type" not in meta:
+                meta["source_type"] = meta.get("type", "Unknown")
+            all_chunks.append({"page_content": text, "metadata": meta})
+    return all_chunks
+
+
+def _get_index_paths(embedding_cfg):
+    index_dir = INDEX_BASE_DIR / embedding_cfg["index_subdir"]
+    return index_dir, index_dir / "index.faiss", index_dir / "metadata.json"
+
+
+def _build_and_persist_index(chunks_data, embedding_cfg):
     if not chunks_data:
         return None, []
 
-    INDEX_DIR.mkdir(parents=True, exist_ok=True)
+    index_dir, index_file, metadata_file = _get_index_paths(embedding_cfg)
+    index_dir.mkdir(parents=True, exist_ok=True)
 
     texts = [item.get("page_content", "") for item in chunks_data]
     metadata = [item.get("metadata", {}) for item in chunks_data]
 
     all_embeddings = []
     for i in range(0, len(texts), EMBEDDING_BATCH_SIZE):
-        batch = texts[i : i + EMBEDDING_BATCH_SIZE]
-        batch_embeddings = _embed_texts(batch)
-        all_embeddings.extend(batch_embeddings)
+        batch = texts[i: i + EMBEDDING_BATCH_SIZE]
+        all_embeddings.extend(embed_texts(batch, embedding_cfg))
 
     vectors = np.array(all_embeddings, dtype=np.float32)
     faiss.normalize_L2(vectors)
-
     index = faiss.IndexFlatIP(vectors.shape[1])
     index.add(vectors)
 
-    faiss.write_index(index, str(INDEX_FILE))
-    with METADATA_FILE.open("w", encoding="utf-8") as f:
+    faiss.write_index(index, str(index_file))
+    with metadata_file.open("w", encoding="utf-8") as f:
         json.dump(metadata, f, ensure_ascii=False)
 
     return index, metadata
 
 
 @st.cache_resource
-def get_rag_index():
-    if not os.getenv("OPENAI_API_KEY"):
+def get_rag_index(embedding_model_key: str):
+    """Loads or builds a FAISS index for the given embedding model."""
+    embedding_cfg = EMBEDDING_MODELS[embedding_model_key]
+    if embedding_cfg["provider"] == "openai" and not os.getenv("OPENAI_API_KEY"):
         return None, []
 
-    if INDEX_FILE.exists() and METADATA_FILE.exists():
-        index = faiss.read_index(str(INDEX_FILE))
-        with METADATA_FILE.open("r", encoding="utf-8") as f:
+    _, index_file, metadata_file = _get_index_paths(embedding_cfg)
+    if index_file.exists() and metadata_file.exists():
+        index = faiss.read_index(str(index_file))
+        with metadata_file.open("r", encoding="utf-8") as f:
             metadata = json.load(f)
         return index, metadata
 
-    chunks_data = _load_chunks_data()
-    return _build_and_persist_index(chunks_data)
+    chunks_data = get_all_chunks_data()
+    return _build_and_persist_index(chunks_data, embedding_cfg)
 
 
-@st.cache_data
-def get_chunks_data():
-    return _load_chunks_data()
+# -----------------------------------------------------------------------------
+# LLM Helpers
+
+def call_llm_stream(prompt, llm_cfg):
+    """Calls the selected LLM and returns a streaming text generator."""
+    provider = llm_cfg["provider"]
+    model_id = llm_cfg["model_id"]
+
+    if provider == "openai":
+        openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        stream = openai_client.chat.completions.create(
+            model=model_id,
+            messages=[{"role": "user", "content": prompt}],
+            stream=True,
+        )
+
+        def _gen():
+            for chunk in stream:
+                delta = chunk.choices[0].delta.content
+                if delta:
+                    yield delta
+
+        return _gen()
+
+    elif provider == "xai":
+        from xai_sdk import Client as XaiClient
+        from xai_sdk.chat import system, user as xai_user
+        api_key = os.getenv("GROK_API_KEY") or os.getenv("XAI_API_KEY")
+        xai_client = XaiClient(api_key=api_key)
+        chat = xai_client.chat.create(model=model_id)
+        chat.append(system("You are a professional and accurate Hong Kong policy assistant."))
+        chat.append(xai_user(prompt))
+        response = chat.sample()
+        text = response.content
+
+        def _gen():
+            yield text
+
+        return _gen()
+
+    raise ValueError(f"Unknown provider: {provider}")
+
+
+def call_llm_once(prompt, llm_cfg):
+    """Calls the selected LLM (non-streaming) for summarisation tasks."""
+    provider = llm_cfg["provider"]
+    model_id = llm_cfg["model_id"]
+
+    if provider == "openai":
+        openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        response = openai_client.chat.completions.create(
+            model=model_id,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        return response.choices[0].message.content
+
+    elif provider == "xai":
+        from xai_sdk import Client as XaiClient
+        from xai_sdk.chat import system, user as xai_user
+        api_key = os.getenv("GROK_API_KEY") or os.getenv("XAI_API_KEY")
+        xai_client = XaiClient(api_key=api_key)
+        chat = xai_client.chat.create(model=model_id)
+        chat.append(system("You are a professional and accurate Hong Kong policy assistant."))
+        chat.append(xai_user(prompt))
+        return chat.sample().content
+
+    raise ValueError(f"Unknown provider: {provider}")
+
+
+# -----------------------------------------------------------------------------
+# Prompt Building
+
+def build_prompt(**kwargs):
+    prompt = []
+    for name, contents in kwargs.items():
+        if contents:
+            prompt.append(f"<{name}>\n{contents}\n</{name}>")
+    return "\n".join(prompt)
+
+
+def get_instructions(lang):
+    base = textwrap.dedent("""
+        - You are a helpful AI assistant that answers questions about Hong Kong
+          government policies, regulations, and public affairs.
+        - You will be given extra information provided inside tags like this
+          <foo></foo>.
+        - Use context and history to provide a coherent answer.
+        - Use markdown such as headers (starting with ##), code blocks, bullet
+          points, indentation for sub bullets, and backticks for inline code.
+        - Don't start the response with a markdown header.
+        - Be clear and accurate. Cite sources when available in the context.
+        - Don't say things like "according to the provided context".
+        - If you are unsure, say so rather than guessing.
+    """)
+    directive = TRANSLATIONS[lang]["lang_directive"]
+    if directive:
+        base = base.rstrip() + f"\n- {directive}\n"
+    return base
+
+
+TaskInfo = namedtuple("TaskInfo", ["name", "function", "args"])
+TaskResult = namedtuple("TaskResult", ["name", "result"])
+
+
+def history_to_text(chat_history):
+    return "\n".join(f"[{h['role']}]: {h['content']}" for h in chat_history)
+
+
+def generate_chat_summary(messages, llm_cfg):
+    prompt = build_prompt(
+        instructions="Summarize this conversation as concisely as possible.",
+        conversation=history_to_text(messages),
+    )
+    return call_llm_once(prompt, llm_cfg)
 
 
 def _extract_years_from_query(query):
@@ -265,51 +720,68 @@ def _extract_years_from_query(query):
     return set(years)
 
 
-def search_relevant_docs(query):
-    """Retrieves relevant chunks with FAISS and returns prompt-ready context."""
-    index, metadata = get_rag_index()
-    chunks_data = get_chunks_data()
+def search_relevant_docs(query, embedding_model_key, rag_cfg):
+    """Retrieves relevant chunks using FAISS with the configured RAG strategy."""
+    if not rag_cfg["use_rag"]:
+        return ""
 
+    index, metadata = get_rag_index(embedding_model_key)
+    chunks_data = get_all_chunks_data()
     if index is None or not chunks_data:
         return ""
 
-    query_embedding = _embed_texts([query])[0]
+    embedding_cfg = EMBEDDING_MODELS[embedding_model_key]
+    query_embedding = embed_query(query, embedding_cfg)
     query_vector = np.array([query_embedding], dtype=np.float32)
     faiss.normalize_L2(query_vector)
 
-    k = min(DOCS_CONTEXT_LEN, index.ntotal)
+    k = min(rag_cfg.get("k", 10), index.ntotal)
     distances, indices = index.search(query_vector, k)
 
-    context_lines = []
+    retrieved = []
     for rank, idx in enumerate(indices[0]):
         if idx < 0:
             continue
-
         chunk = chunks_data[idx]
         md = metadata[idx] if idx < len(metadata) else {}
-        source_type = md.get("source_type", "Unknown")
-        year = md.get("year", "Unknown")
-        filename = md.get("filename", "Unknown")
-        page = md.get("page", "Unknown")
-        score = float(distances[0][rank])
-        text = chunk.get("page_content", "").strip()
+        retrieved.append({
+            "page_content": chunk.get("page_content", "").strip(),
+            "metadata": md,
+            "_score": float(distances[0][rank]),
+            "_rank": rank,
+        })
 
-        context_lines.append(
-            "\\n".join(
-                [
-                    f"[Chunk {rank + 1}]",
-                    f"source_type={source_type}; year={year}; file={filename}; page={page}; score={score:.4f}",
-                    text,
-                ]
-            )
+    if rag_cfg.get("filter_by_year"):
+        retrieved = sorted(
+            retrieved,
+            key=lambda d: d["metadata"].get("year", "0") or "0",
+            reverse=True,
         )
 
+    if rag_cfg.get("merge_chunks"):
+        retrieved = merge_adjacent_chunks(retrieved)
+
+    context_lines = []
+    for i, doc in enumerate(retrieved):
+        md = doc.get("metadata", {})
+        context_lines.append(
+            "\\n".join([
+                f"[Chunk {i + 1}]",
+                f"source_type={md.get('source_type', 'Unknown')}; year={md.get('year', 'Unknown')}; "
+                f"file={md.get('filename', 'Unknown')}; page={md.get('page', 'Unknown')}; "
+                f"score={doc.get('_score', 0):.4f}",
+                doc.get("page_content", "").strip(),
+            ])
+        )
     return "\n\n".join(context_lines)
 
 
-def search_extra_context(query):
+def search_extra_context(query, rag_cfg):
     """Applies lightweight metadata filtering for targeted policy queries."""
-    chunks_data = get_chunks_data()
+    if not rag_cfg["use_rag"]:
+        return ""
+
+    chunks_data = get_all_chunks_data()
     if not chunks_data:
         return ""
 
@@ -319,7 +791,7 @@ def search_extra_context(query):
     wanted_source = None
     if "budget" in query_lower or "預算" in query or "预算" in query:
         wanted_source = "Budget"
-    elif "policy address" in query_lower or "施政報告" in query:
+    elif "policy address" in query_lower or "施政報告" in query or "施政报告" in query:
         wanted_source = "Policy Address"
 
     matched = []
@@ -327,12 +799,10 @@ def search_extra_context(query):
         md = item.get("metadata", {})
         source_type = md.get("source_type", "")
         year = str(md.get("year", ""))
-
         if wanted_source and source_type != wanted_source:
             continue
         if years and year not in years:
             continue
-
         matched.append(item)
         if len(matched) >= EXTRA_CONTEXT_LEN:
             break
@@ -344,143 +814,215 @@ def search_extra_context(query):
     for i, item in enumerate(matched, start=1):
         md = item.get("metadata", {})
         lines.append(
-            "\\n".join(
-                [
-                    f"[Filtered {i}]",
-                    f"source_type={md.get('source_type', 'Unknown')}; year={md.get('year', 'Unknown')}; file={md.get('filename', 'Unknown')}; page={md.get('page', 'Unknown')}",
-                    item.get("page_content", "").strip(),
-                ]
-            )
+            "\\n".join([
+                f"[Filtered {i}]",
+                f"source_type={md.get('source_type', 'Unknown')}; year={md.get('year', 'Unknown')}; "
+                f"file={md.get('filename', 'Unknown')}; page={md.get('page', 'Unknown')}",
+                item.get("page_content", "").strip(),
+            ])
         )
-
     return "\n\n".join(lines)
 
 
-def get_response(prompt):
-    """Calls the LLM and returns a streaming text generator."""
-    stream = client.chat.completions.create(
-        model=MODEL,
-        messages=[{"role": "user", "content": prompt}],
-        stream=True,
+def build_question_prompt(question, llm_cfg, embedding_model_key, rag_cfg, lang):
+    """Fetches info from different sources and creates the prompt string."""
+    old_history = st.session_state.messages[:-HISTORY_LENGTH]
+    recent_history = st.session_state.messages[-HISTORY_LENGTH:]
+    recent_history_str = history_to_text(recent_history) if recent_history else None
+
+    task_infos = []
+    if SUMMARIZE_OLD_HISTORY and old_history:
+        task_infos.append(
+            TaskInfo("old_message_summary", generate_chat_summary, (old_history, llm_cfg))
+        )
+    if rag_cfg["use_rag"] and DOCS_CONTEXT_LEN:
+        task_infos.append(
+            TaskInfo("policy_documents", search_relevant_docs, (question, embedding_model_key, rag_cfg))
+        )
+    if rag_cfg["use_rag"] and EXTRA_CONTEXT_LEN:
+        task_infos.append(
+            TaskInfo("extra_context", search_extra_context, (question, rag_cfg))
+        )
+
+    results = executor.map(
+        lambda ti: TaskResult(name=ti.name, result=ti.function(*ti.args)),
+        task_infos,
     )
+    context = {name: result for name, result in results}
+    context = {k: v for k, v in context.items() if v}
 
-    def _gen():
-        for chunk in stream:
-            delta = chunk.choices[0].delta.content
-            if delta:
-                yield delta
+    prompt = build_prompt(
+        instructions=get_instructions(lang),
+        **context,
+        recent_messages=recent_history_str,
+        question=question,
+    )
+    return prompt, context
 
-    return _gen()
 
+# -----------------------------------------------------------------------------
+# Feedback & Telemetry
 
 def send_telemetry(**kwargs):
-    """Records some telemetry about questions being asked."""
-    # TODO: Implement this.
     pass
 
 
 def show_feedback_controls(message_index):
-    """Shows the "How did I do?" control."""
     st.write("")
-
-    with st.popover("How did I do?"):
+    with st.popover(t["feedback_btn"]):
         with st.form(key=f"feedback-{message_index}", border=False):
             with st.container(gap=None):
-                st.markdown(":small[Rating]")
-                rating = st.feedback(options="stars")
-
-            details = st.text_area("More information (optional)")
-
-            if st.checkbox("Include chat history with my feedback", True):
-                relevant_history = st.session_state.messages[:message_index]
-            else:
-                relevant_history = []
-
-            ""  # Add some space
-
-            if st.form_submit_button("Send feedback"):
-                # TODO: Submit feedback here!
+                st.markdown(f":small[{t['feedback_rating']}]")
+                st.feedback(options="stars")
+            st.text_area(t["feedback_detail"])
+            if st.checkbox(t["feedback_history"], True):
+                pass
+            ""
+            if st.form_submit_button(t["feedback_submit"]):
                 pass
 
 
-@st.dialog("Legal disclaimer")
+@st.dialog(t["disclaimer_title"])
 def show_disclaimer_dialog():
-    st.caption("""
-            This AI chatbot is powered by OpenAI and local policy documents.
-            Answers may be inaccurate, inefficient, or biased.
-            Any use or decisions based on such answers should include reasonable
-            practices including human oversight to ensure they are safe,
-            accurate, and suitable for your intended purpose. The project is not
-            liable for any actions, losses, or damages resulting from the use
-            of the chatbot. Do not enter any private, sensitive, personal, or
-            regulated data.
-        """)
+    st.caption(t["disclaimer_text"])
 
 
 # -----------------------------------------------------------------------------
-# Draw the UI.
+# Rest of Sidebar (after language selection)
+
+with st.sidebar:
+    st.header(t["sidebar_header"])
+
+    st.subheader(t["llm_section"])
+    selected_llm_key = st.selectbox(
+        t["llm_section"],
+        options=list(LLM_MODELS.keys()),
+        format_func=lambda k: LLM_MODEL_LABELS[selected_lang][k],
+        index=0,
+        label_visibility="collapsed",
+    )
+    llm_cfg = LLM_MODELS[selected_llm_key]
+
+    if llm_cfg["provider"] == "xai":
+        grok_key = os.getenv("GROK_API_KEY") or os.getenv("XAI_API_KEY")
+        if not grok_key:
+            st.warning(t["xai_warning"], icon="⚠️")
+
+    st.divider()
+
+    st.subheader(t["rag_section"])
+    selected_rag_key = st.selectbox(
+        t["rag_section"],
+        options=list(RAG_CONFIGS.keys()),
+        format_func=lambda k: RAG_CONFIG_LABELS[selected_lang][k],
+        index=0,
+        label_visibility="collapsed",
+    )
+    rag_cfg = RAG_CONFIGS[selected_rag_key].copy()
+    st.caption(RAG_CONFIG_DESCRIPTIONS[selected_lang][selected_rag_key])
+
+    if rag_cfg["use_rag"]:
+        rag_cfg["k"] = st.slider(
+            t["rag_k_label"],
+            min_value=3,
+            max_value=20,
+            value=rag_cfg.get("k", 10),
+            step=1,
+        )
+        rag_cfg["merge_chunks"] = st.toggle(
+            t["rag_merge_label"],
+            value=rag_cfg.get("merge_chunks", True),
+        )
+        rag_cfg["filter_by_year"] = st.toggle(
+            t["rag_sort_label"],
+            value=rag_cfg.get("filter_by_year", False),
+        )
+
+    st.divider()
+
+    st.subheader(t["embedding_section"])
+    selected_embedding_key = st.selectbox(
+        t["embedding_section"],
+        options=list(EMBEDDING_MODELS.keys()),
+        format_func=lambda k: EMBEDDING_MODEL_LABELS[selected_lang][k],
+        index=0,
+        label_visibility="collapsed",
+    )
+    embedding_cfg = EMBEDDING_MODELS[selected_embedding_key]
+
+    if embedding_cfg["provider"] == "huggingface":
+        st.info(t["hf_info"], icon="ℹ️")
+
+    _, index_file, _ = _get_index_paths(embedding_cfg)
+    if index_file.exists():
+        st.success(t["index_ready"], icon="✅")
+    else:
+        st.warning(t["index_missing"], icon="⏳")
+
+    st.divider()
+
+    st.subheader(t["metrics_section"])
+    st.caption(t["metrics_caption"])
+    cols = st.columns(2)
+    with cols[0]:
+        st.metric("RAG-Basic", "43%")
+        st.metric("RAG-Opt.", "37%")
+    with cols[1]:
+        st.metric("RAG-Basic", "2.97/6")
+        st.metric("RAG-Opt.", "2.90/6")
+    st.caption(t["metrics_note"])
 
 
-st.html(div(style=styles(font_size=rem(5), line_height=1))["❉"])
+# -----------------------------------------------------------------------------
+# Main UI
 
-title_row = st.container(
-    horizontal=True,
-    vertical_alignment="bottom",
-)
+st.html(div(style=styles(font_size=rem(5), line_height=1))["🇭🇰"])
+
+title_row = st.container(horizontal=True, vertical_alignment="bottom")
 
 with title_row:
-    st.title(
-        "HK Policy AI Assistant",
-        anchor=False,
-        width="stretch",
-    )
+    st.title(t["page_title"], anchor=False, width="stretch")
 
 user_just_asked_initial_question = (
     "initial_question" in st.session_state and st.session_state.initial_question
 )
-
 user_just_clicked_suggestion = (
     "selected_suggestion" in st.session_state and st.session_state.selected_suggestion
 )
-
-user_first_interaction = (
-    user_just_asked_initial_question or user_just_clicked_suggestion
-)
+user_first_interaction = user_just_asked_initial_question or user_just_clicked_suggestion
 
 has_message_history = (
     "messages" in st.session_state and len(st.session_state.messages) > 0
 )
 
-# Show a different UI when the user hasn't asked a question yet.
 if not user_first_interaction and not has_message_history:
     st.session_state.messages = []
 
     with st.container():
-        st.chat_input("Ask a question...", key="initial_question")
+        st.chat_input(t["chat_placeholder"], key="initial_question")
 
         selected_suggestion = st.pills(
             label="Examples",
             label_visibility="collapsed",
-            options=SUGGESTIONS.keys(),
+            options=suggestions.keys(),
             key="selected_suggestion",
         )
 
     st.button(
-        "&nbsp;:small[:gray[:material/balance: Legal disclaimer]]",
+        t["disclaimer_btn"],
         type="tertiary",
         on_click=show_disclaimer_dialog,
     )
 
     st.stop()
 
-# Show chat input at the bottom when a question has been asked.
-user_message = st.chat_input("Ask a follow-up...")
+user_message = st.chat_input(t["chat_followup"])
 
 if not user_message:
     if user_just_asked_initial_question:
         user_message = st.session_state.initial_question
     if user_just_clicked_suggestion:
-        user_message = SUGGESTIONS[st.session_state.selected_suggestion]
+        user_message = suggestions[st.session_state.selected_suggestion]
 
 with title_row:
 
@@ -490,7 +1032,7 @@ with title_row:
         st.session_state.selected_suggestion = None
 
     st.button(
-        "Restart",
+        t["restart_button"],
         icon=":material/refresh:",
         on_click=clear_conversation,
     )
@@ -498,70 +1040,61 @@ with title_row:
 if "prev_question_timestamp" not in st.session_state:
     st.session_state.prev_question_timestamp = datetime.datetime.fromtimestamp(0)
 
-# Display chat messages from history as speech bubbles.
 for i, message in enumerate(st.session_state.messages):
     with st.chat_message(message["role"]):
         if message["role"] == "assistant":
-            st.container()  # Fix ghost message bug.
-
+            st.container()
         st.markdown(message["content"])
-
         if message["role"] == "assistant":
             show_feedback_controls(i)
 
 if user_message:
-    # When the user posts a message...
-
-    # Streamlit's Markdown engine interprets "$" as LaTeX code (used to
-    # display math). The line below fixes it.
     user_message = user_message.replace("$", r"\$")
 
-    # Display message as a speech bubble.
     with st.chat_message("user"):
         st.text(user_message)
 
-    # Display assistant response as a speech bubble.
     with st.chat_message("assistant"):
-        with st.spinner("Waiting..."):
-            # Rate-limit the input if needed.
+        with st.spinner(t["spinner_waiting"]):
             question_timestamp = datetime.datetime.now()
             time_diff = question_timestamp - st.session_state.prev_question_timestamp
             st.session_state.prev_question_timestamp = question_timestamp
-
             if time_diff < MIN_TIME_BETWEEN_REQUESTS:
                 time.sleep(time_diff.seconds + time_diff.microseconds * 0.001)
-
             user_message = user_message.replace("'", "")
 
-        # Build a detailed prompt.
+        rag_display = RAG_CONFIG_LABELS[selected_lang][selected_rag_key]
+        llm_display = LLM_MODEL_LABELS[selected_lang][selected_llm_key]
+        config_label = f"{llm_display} · {rag_display} · {EMBEDDING_MODEL_LABELS[selected_lang][selected_embedding_key]}"
+
         if DEBUG_MODE:
-            with st.status("Computing prompt...") as status:
-                full_prompt, retrieved_context = build_question_prompt(user_message)
+            with st.status(t["spinner_prompt"]) as status:
+                full_prompt, retrieved_context = build_question_prompt(
+                    user_message, llm_cfg, selected_embedding_key, rag_cfg, selected_lang
+                )
                 st.code(full_prompt)
-                status.update(label="Prompt computed")
+                status.update(label=t["spinner_prompt_done"])
         else:
-            with st.spinner("Researching..."):
-                full_prompt, retrieved_context = build_question_prompt(user_message)
+            with st.spinner(t["spinner_researching"].format(rag=rag_display)):
+                full_prompt, retrieved_context = build_question_prompt(
+                    user_message, llm_cfg, selected_embedding_key, rag_cfg, selected_lang
+                )
 
-        # Send prompt to LLM.
-        with st.spinner("Thinking..."):
-            response_gen = get_response(full_prompt)
+        with st.spinner(t["spinner_thinking"].format(llm=llm_display)):
+            response_gen = call_llm_stream(full_prompt, llm_cfg)
 
-        # Put everything after the spinners in a container to fix the
-        # ghost message bug.
         with st.container():
-            # Stream the LLM response.
             response = st.write_stream(response_gen)
 
             retrieved_docs = retrieved_context.get("policy_documents", "")
             if retrieved_docs:
-                with st.expander("Referenced knowledge chunks", expanded=False):
+                with st.expander(t["chunks_expander"], expanded=False):
                     st.text(retrieved_docs)
 
-            # Add messages to chat history.
+            st.caption(f":gray[{config_label}]")
+
             st.session_state.messages.append({"role": "user", "content": user_message})
             st.session_state.messages.append({"role": "assistant", "content": response})
 
-            # Other stuff.
             show_feedback_controls(len(st.session_state.messages) - 1)
             send_telemetry(question=user_message, response=response)
