@@ -240,6 +240,12 @@ TRANSLATIONS = {
             "any actions, losses, or damages resulting from the use of the chatbot. "
             "Do not enter any private, sensitive, personal, or regulated data."
         ),
+        # Retrieval Optimisation section
+        "retrieval_opt_section":    "⚡ Retrieval Optimisation",
+        "query_rewrite_label":      "Query rewrite (improves keyword match)",
+        "reranker_label":           "LLM reranker (scores answer-relevance)",
+        "pool_factor_label":        "Candidate pool multiplier",
+        "pool_factor_help":         "Retrieve k × N candidates before reranking, then keep top k.",
         # LLM instruction language directive
         "lang_directive": "",
     },
@@ -284,6 +290,12 @@ TRANSLATIONS = {
             "本项目不对因使用本聊天机器人而导致的任何行为、损失或损害承担责任。"
             "请勿输入任何私人、敏感、个人或受监管的数据。"
         ),
+        # Retrieval Optimisation section
+        "retrieval_opt_section":    "⚡ 检索优化",
+        "query_rewrite_label":      "查询改写（提升关键词匹配）",
+        "reranker_label":           "LLM 精排（评估答案相关性）",
+        "pool_factor_label":        "候选扩大倍数",
+        "pool_factor_help":         "先取 k × N 个候选，精排后保留前 k 个。",
         "lang_directive": "请用简体中文回答。",
     },
     "zh-tw": {
@@ -327,6 +339,12 @@ TRANSLATIONS = {
             "本項目不對因使用本聊天機器人而導致的任何行為、損失或損害承擔責任。"
             "請勿輸入任何私人、敏感、個人或受監管的資料。"
         ),
+        # Retrieval Optimisation section
+        "retrieval_opt_section":    "⚡ 檢索優化",
+        "query_rewrite_label":      "查詢改寫（提升關鍵詞匹配）",
+        "reranker_label":           "LLM 精排（評估答案相關性）",
+        "pool_factor_label":        "候選擴大倍數",
+        "pool_factor_help":         "先取 k × N 個候選，精排後保留前 k 個。",
         "lang_directive": "請以繁體中文回答。",
     },
 }
@@ -685,9 +703,18 @@ def get_instructions(lang):
         - Use markdown such as headers (starting with ##), code blocks, bullet
           points, indentation for sub bullets, and backticks for inline code.
         - Don't start the response with a markdown header.
-        - Be clear and accurate. Cite sources when available in the context.
         - Don't say things like "according to the provided context".
-        - If you are unsure, say so rather than guessing.
+        - CITATION REQUIREMENT: For every specific factual claim (numbers, dates,
+          names, statistics, policy details), append an inline citation in the
+          format 【来源：filename 第X页】. If no matching passage exists in the
+          provided chunks, explicitly write (无引用支撑) after that claim.
+        - NEGATIVE SPACE RULE: If the retrieved document chunks do NOT contain
+          information directly relevant to the question, you MUST state
+          "This specific information is not found in the provided documents"
+          rather than answering from general knowledge. This rule is strict for
+          yes/no questions and factual questions about specific policy documents.
+          Do NOT fabricate paragraph numbers, page numbers, or statistics.
+        - If you are unsure about something not in the documents, say so explicitly.
     """)
     directive = TRANSLATIONS[lang]["lang_directive"]
     if directive:
@@ -720,26 +747,87 @@ def _extract_years_from_query(query):
     return set(years)
 
 
-def search_relevant_docs(query, embedding_model_key, rag_cfg):
-    """Retrieves relevant chunks using FAISS with the configured RAG strategy."""
-    if not rag_cfg["use_rag"]:
-        return ""
+# -----------------------------------------------------------------------------
+# Step 2: Document-signal routing
+# Detects which specific policy documents a query is asking about by checking
+# co-occurrence of year numbers and document-type keywords anywhere in the query.
 
-    index, metadata = get_rag_index(embedding_model_key)
-    chunks_data = get_all_chunks_data()
-    if index is None or not chunks_data:
-        return ""
+import re as _re
 
-    embedding_cfg = EMBEDDING_MODELS[embedding_model_key]
-    query_embedding = embed_query(query, embedding_cfg)
-    query_vector = np.array([query_embedding], dtype=np.float32)
-    faiss.normalize_L2(query_vector)
+_PA_YEAR_MAP = {
+    "2019": "2019_PolicyAddress.pdf",
+    "2020": "2020_PolicyAddress.pdf",
+    "2021": "2021_PolicyAddress.pdf",
+    "2022": "2022_PolicyAddress.pdf",
+    "2023": "2023_PolicyAddress.pdf",
+    "2024": "2024_PolicyAddress.pdf",
+    "2025": "2025_PolicyAddress.pdf",
+}
 
-    k = min(rag_cfg.get("k", 10), index.ntotal)
-    distances, indices = index.search(query_vector, k)
+# Fiscal year string → budget filename  (e.g. "2025/26" → "budget2025.pdf")
+_BUDGET_FISCAL_MAP = {
+    "2019/20": "budget2020.pdf",
+    "2020/21": "budget2021.pdf",
+    "2021/22": "budget2022.pdf",
+    "2022/23": "budget2023.pdf",
+    "2023/24": "budget2024.pdf",
+    "2024/25": "budget2024.pdf",
+    "2025/26": "budget2025.pdf",
+    "2026/27": "budget2026.pdf",
+}
 
+_PA_KEYWORDS     = ["施政報告", "施政报告", "Policy Address"]
+_BUDGET_KEYWORDS = ["預算案", "预算案", "财政预算", "財政預算", "Budget"]
+
+
+def _detect_target_docs(query: str) -> list:
+    """Returns deduplicated list of document filenames co-signalled in the query.
+
+    Uses co-occurrence detection: a document is targeted when the query
+    contains both a year number AND the corresponding document-type keyword,
+    regardless of their relative positions in the sentence.
+    """
+    found = []
+
+    is_pa     = any(kw in query for kw in _PA_KEYWORDS)
+    is_budget = any(kw in query for kw in _BUDGET_KEYWORDS)
+
+    if is_pa:
+        for year in _re.findall(r"20\d\d", query):
+            fn = _PA_YEAR_MAP.get(year)
+            if fn and fn not in found:
+                found.append(fn)
+
+    if is_budget:
+        # Prefer exact fiscal-year strings (e.g. "2025/26")
+        fiscal_hits = _re.findall(r"20\d\d/\d\d", query)
+        for fy in fiscal_hits:
+            fn = _BUDGET_FISCAL_MAP.get(fy)
+            if fn and fn not in found:
+                found.append(fn)
+        if not fiscal_hits:
+            # Fallback: plain years → match fiscal years starting with that year
+            for year in _re.findall(r"20\d\d", query):
+                for fy, fn in _BUDGET_FISCAL_MAP.items():
+                    if fy.startswith(year) and fn not in found:
+                        found.append(fn)
+
+    return found
+
+
+# -----------------------------------------------------------------------------
+# Low-level FAISS helpers
+
+def _embed_query_vector(query: str, embedding_cfg: dict) -> np.ndarray:
+    vec = embed_query(query, embedding_cfg)
+    v = np.array([vec], dtype=np.float32)
+    faiss.normalize_L2(v)
+    return v
+
+
+def _build_retrieved_list(distances, indices_arr, chunks_data, metadata):
     retrieved = []
-    for rank, idx in enumerate(indices[0]):
+    for rank, idx in enumerate(indices_arr[0]):
         if idx < 0:
             continue
         chunk = chunks_data[idx]
@@ -750,7 +838,320 @@ def search_relevant_docs(query, embedding_model_key, rag_cfg):
             "_score": float(distances[0][rank]),
             "_rank": rank,
         })
+    return retrieved
 
+
+def _faiss_search_full(search_query: str, embedding_cfg: dict,
+                       index, metadata: list, chunks_data: list, k: int) -> list:
+    """Full-corpus FAISS similarity search."""
+    qv = _embed_query_vector(search_query, embedding_cfg)
+    k = min(k, index.ntotal)
+    distances, indices_arr = index.search(qv, k)
+    return _build_retrieved_list(distances, indices_arr, chunks_data, metadata)
+
+
+def _faiss_search_filtered(search_query: str, target_doc: str,
+                           embedding_cfg: dict, index, metadata: list,
+                           chunks_data: list, k: int) -> list:
+    """FAISS search restricted to chunks from target_doc.
+
+    Searches a wider pool of candidates (up to full index), then keeps only
+    those belonging to target_doc.  Falls back to full-corpus if the filtered
+    result set is too thin.
+    """
+    target_indices = {i for i, md in enumerate(metadata)
+                      if md.get("filename") == target_doc}
+    if not target_indices:
+        return _faiss_search_full(search_query, embedding_cfg, index, metadata, chunks_data, k)
+
+    # Search wide enough to collect k hits from target_doc
+    search_k = min(index.ntotal, max(k * 10, len(target_indices)))
+    qv = _embed_query_vector(search_query, embedding_cfg)
+    distances, indices_arr = index.search(qv, search_k)
+
+    retrieved = []
+    for rank, idx in enumerate(indices_arr[0]):
+        if idx < 0:
+            continue
+        if idx in target_indices:
+            chunk = chunks_data[idx]
+            md = metadata[idx]
+            retrieved.append({
+                "page_content": chunk.get("page_content", "").strip(),
+                "metadata": md,
+                "_score": float(distances[0][rank]),
+                "_rank": rank,
+            })
+            if len(retrieved) >= k:
+                break
+
+    # Fall back if we couldn't collect a meaningful set from target_doc
+    if len(retrieved) < max(2, k // 3):
+        return _faiss_search_full(search_query, embedding_cfg, index, metadata, chunks_data, k)
+    return retrieved
+
+
+# -----------------------------------------------------------------------------
+# Step 3: Query decomposition for cross-document questions
+
+def _decompose_cross_doc_query(query: str, target_docs: list, llm_cfg: dict) -> list:
+    """Uses LLM to split a multi-doc query into per-document sub-queries.
+
+    Returns a list of dicts: [{"target_doc": "...", "subquery": "..."}, ...]
+    Falls back to the original query for each doc if parsing fails.
+    """
+    doc_list = "\n".join(f"- {d}" for d in target_docs)
+    prompt = textwrap.dedent(f"""
+        你是RAG检索助手。请将以下跨文档问题分解为针对各文档的子查询，以便分别检索最相关内容。
+
+        原始问题：{query}
+
+        相关文档：
+        {doc_list}
+
+        请输出JSON数组（仅输出JSON，不要解释）：
+        [
+          {{"target_doc": "文件名.pdf", "subquery": "针对该文档的检索关键词和问题"}},
+          ...
+        ]
+
+        每个子查询应聚焦于原问题在该文档中的相关部分，使用利于向量检索的关键词。
+    """)
+    try:
+        response = call_llm_once(prompt, llm_cfg)
+        match = _re.search(r'\[.*\]', response, _re.DOTALL)
+        if match:
+            parsed = json.loads(match.group())
+            if isinstance(parsed, list) and all("target_doc" in x and "subquery" in x for x in parsed):
+                return parsed
+    except Exception:
+        pass
+    # Fallback: use original query for each doc
+    return [{"target_doc": d, "subquery": query} for d in target_docs]
+
+
+# -----------------------------------------------------------------------------
+# Step 4: HyDE — Hypothetical Document Embeddings for English queries
+
+def _is_english_query(query: str) -> bool:
+    """Returns True when the query is predominantly ASCII (English)."""
+    if not query:
+        return False
+    stripped = [c for c in query if not c.isspace()]
+    if not stripped:
+        return False
+    ascii_ratio = sum(1 for c in stripped if ord(c) < 128) / len(stripped)
+    return ascii_ratio > 0.6
+
+
+def _hyde_expand_query(query: str, llm_cfg: dict) -> str:
+    """Generates a short hypothetical Chinese answer to use as the retrieval query.
+
+    This bridges the semantic gap when the corpus is Chinese but the query is English.
+    """
+    prompt = (
+        "请用1-2句简体中文简要回答以下关于香港政策的问题。"
+        "如不确定，可根据常识猜测，重点包含政策相关关键词。\n"
+        f"问题：{query}"
+    )
+    try:
+        return call_llm_once(prompt, llm_cfg)
+    except Exception:
+        return query  # silently fall back to original on error
+
+
+# -----------------------------------------------------------------------------
+# Step 5: Query Rewrite
+# Rewrites the user's natural-language question into a retrieval-optimised
+# keyword query before embedding.  Works for both Chinese and English inputs;
+# for English queries it runs first, then HyDE further expands the rewritten
+# text into a hypothetical Chinese answer.
+
+def _rewrite_for_retrieval(query: str, llm_cfg: dict) -> str:
+    """Converts a conversational question into a keyword-dense retrieval query.
+
+    Strips interrogative framing, expands key entities, preserves numbers,
+    years, and proper nouns — all of which are critical for policy recall.
+    Falls back to the original query on any error.
+    """
+    prompt = textwrap.dedent(f"""
+        你是RAG检索优化助手。请将以下问题改写为向量检索专用的关键词查询。
+
+        改写规则：
+        1. 提取核心实体、政策名称、专有名词（保持原文字符）
+        2. 保留所有年份、数字、百分比、金额
+        3. 去除疑问词（如"是什么"、"有多少"、"如何"）和助词
+        4. 可适当补充相关领域关键词，但不要编造具体数字
+
+        原始问题：{query.strip()}
+
+        改写后的检索查询（一句关键词，不要解释）：
+    """)
+    try:
+        result = call_llm_once(prompt, llm_cfg).strip()
+        # Sanity-check: if LLM returned something very long or empty, fall back
+        if result and len(result) < len(query) * 3:
+            return result
+    except Exception:
+        pass
+    return query
+
+
+# -----------------------------------------------------------------------------
+# Step 6: LLM-based Reranking
+# After FAISS retrieves a larger candidate pool (k × pool_factor), the LLM
+# scores every (query, chunk) pair in a single batch call and re-orders them.
+# This is far more accurate than cosine similarity alone because the LLM can
+# evaluate whether a chunk actually *answers* the question, not just whether
+# it is topically related.
+
+def _llm_rerank(query: str, chunks: list, top_k: int, llm_cfg: dict) -> list:
+    """Re-ranks retrieved chunks by answer-relevance using a single LLM call.
+
+    Sends all candidates in one prompt; parses JSON scores; returns top_k.
+    Falls back to the original order on parse failure.
+    """
+    if not chunks or len(chunks) <= top_k:
+        return chunks[:top_k]
+
+    # Truncate each chunk to keep the prompt manageable
+    snippet_len = max(200, 1200 // len(chunks))
+    lines = [
+        f"[{i + 1}] {c['page_content'][:snippet_len]}"
+        for i, c in enumerate(chunks)
+    ]
+    candidates_text = "\n\n".join(lines)
+
+    prompt = textwrap.dedent(f"""
+        你是信息检索评估助手。请评估以下每个文档片段与问题的相关性，
+        判断标准：该片段是否包含能直接回答问题的信息（数字、事实、政策细节）。
+
+        问题：{query}
+
+        文档片段：
+        {candidates_text}
+
+        请输出JSON数组，每个元素包含 idx（1起始）和 score（0-10整数，10=完全匹配）：
+        [{{"idx": 1, "score": 8}}, {{"idx": 2, "score": 3}}, ...]
+        仅输出JSON，不要任何解释。
+    """)
+    try:
+        response = call_llm_once(prompt, llm_cfg)
+        match = _re.search(r'\[.*\]', response, _re.DOTALL)
+        if match:
+            scores_data = json.loads(match.group())
+            score_map = {
+                int(s["idx"]) - 1: float(s["score"])
+                for s in scores_data
+                if isinstance(s, dict) and "idx" in s and "score" in s
+            }
+            scored = sorted(
+                enumerate(chunks),
+                key=lambda x: score_map.get(x[0], 0.0),
+                reverse=True,
+            )
+            return [c for _, c in scored[:top_k]]
+    except Exception:
+        pass
+    return chunks[:top_k]
+
+
+# -----------------------------------------------------------------------------
+# Main retrieval function (orchestrates Steps 2–6)
+
+def search_relevant_docs(
+    query: str,
+    embedding_model_key: str,
+    rag_cfg: dict,
+    llm_cfg: dict | None = None,
+    query_rewrite: bool = False,
+    reranker: bool = False,
+    pool_factor: int = 3,
+):
+    """Retrieves relevant chunks using FAISS with the configured RAG strategy.
+
+    Pipeline order:
+      Step 5 — Query Rewrite: convert question → keyword query (all queries,
+                               if enabled; applied before HyDE).
+      Step 4 — HyDE: English queries are expanded into a hypothetical Chinese
+                     answer (applied after rewrite, replaces search_query).
+      Step 2 — Routing: queries mentioning a specific document are searched
+                        within that document's chunks only.
+      Step 3 — Decomposition: multi-doc queries are split by LLM into
+                               per-document sub-queries, each retrieved
+                               independently, then merged.
+      Step 6 — Reranking: candidates retrieved at k×pool_factor are re-scored
+                          by LLM for answer-relevance; top-k kept.
+    """
+    if not rag_cfg["use_rag"]:
+        return ""
+
+    index, metadata = get_rag_index(embedding_model_key)
+    chunks_data = get_all_chunks_data()
+    if index is None or not chunks_data:
+        return ""
+
+    embedding_cfg = EMBEDDING_MODELS[embedding_model_key]
+    k = rag_cfg.get("k", 10)
+    # Inflate candidate pool when reranker is active
+    fetch_k = k * pool_factor if (reranker and llm_cfg) else k
+
+    # Step 5: Query Rewrite — before HyDE so HyDE can further expand keywords
+    search_query = query
+    if query_rewrite and llm_cfg:
+        search_query = _rewrite_for_retrieval(query, llm_cfg)
+
+    # Step 4: HyDE — replace search query for English inputs
+    if llm_cfg and _is_english_query(search_query):
+        search_query = _hyde_expand_query(search_query, llm_cfg)
+
+    # Step 2 + 3: document routing (always against original query for signal detection)
+    target_docs = _detect_target_docs(query)
+
+    if len(target_docs) >= 2 and llm_cfg:
+        # Step 3: decompose into per-doc sub-queries
+        sub_queries = _decompose_cross_doc_query(query, target_docs, llm_cfg)
+        sub_k = max(3, fetch_k // max(len(sub_queries), 1))
+
+        seen = set()
+        retrieved = []
+        for sq in sub_queries:
+            results = _faiss_search_filtered(
+                sq["subquery"], sq["target_doc"],
+                embedding_cfg, index, metadata, chunks_data, sub_k,
+            )
+            for r in results:
+                key = hash(r["page_content"][:120])
+                if key not in seen:
+                    seen.add(key)
+                    retrieved.append(r)
+
+        # Top-up from full corpus if not enough distinct chunks
+        if len(retrieved) < fetch_k:
+            for r in _faiss_search_full(search_query, embedding_cfg, index, metadata, chunks_data, fetch_k):
+                key = hash(r["page_content"][:120])
+                if key not in seen:
+                    seen.add(key)
+                    retrieved.append(r)
+                    if len(retrieved) >= fetch_k:
+                        break
+
+    elif len(target_docs) == 1:
+        # Step 2: single-doc filtering
+        retrieved = _faiss_search_filtered(
+            search_query, target_docs[0],
+            embedding_cfg, index, metadata, chunks_data, fetch_k,
+        )
+
+    else:
+        # No document signal → full corpus search
+        retrieved = _faiss_search_full(search_query, embedding_cfg, index, metadata, chunks_data, fetch_k)
+
+    # Step 6: LLM Reranking — score candidates by answer-relevance, keep top-k
+    if reranker and llm_cfg and len(retrieved) > k:
+        retrieved = _llm_rerank(query, retrieved, k, llm_cfg)
+
+    # --- Post-processing (unchanged from original) ---
     if rag_cfg.get("filter_by_year"):
         retrieved = sorted(
             retrieved,
@@ -824,7 +1225,16 @@ def search_extra_context(query, rag_cfg):
     return "\n\n".join(lines)
 
 
-def build_question_prompt(question, llm_cfg, embedding_model_key, rag_cfg, lang):
+def build_question_prompt(
+    question,
+    llm_cfg,
+    embedding_model_key,
+    rag_cfg,
+    lang,
+    query_rewrite: bool = False,
+    reranker: bool = False,
+    pool_factor: int = 3,
+):
     """Fetches info from different sources and creates the prompt string."""
     old_history = st.session_state.messages[:-HISTORY_LENGTH]
     recent_history = st.session_state.messages[-HISTORY_LENGTH:]
@@ -837,7 +1247,12 @@ def build_question_prompt(question, llm_cfg, embedding_model_key, rag_cfg, lang)
         )
     if rag_cfg["use_rag"] and DOCS_CONTEXT_LEN:
         task_infos.append(
-            TaskInfo("policy_documents", search_relevant_docs, (question, embedding_model_key, rag_cfg))
+            TaskInfo(
+                "policy_documents",
+                search_relevant_docs,
+                (question, embedding_model_key, rag_cfg, llm_cfg,
+                 query_rewrite, reranker, pool_factor),
+            )
         )
     if rag_cfg["use_rag"] and EXTRA_CONTEXT_LEN:
         task_infos.append(
@@ -961,6 +1376,25 @@ with st.sidebar:
 
     st.divider()
 
+    # ---- Retrieval Optimisation controls ----
+    st.subheader(t["retrieval_opt_section"])
+
+    rag_query_rewrite = st.toggle(t["query_rewrite_label"], value=False)
+    rag_reranker = st.toggle(t["reranker_label"], value=False)
+
+    if rag_reranker:
+        rag_pool_factor = st.slider(
+            t["pool_factor_label"],
+            min_value=2,
+            max_value=5,
+            value=3,
+            help=t["pool_factor_help"],
+        )
+    else:
+        rag_pool_factor = 3
+
+    st.divider()
+
     st.subheader(t["metrics_section"])
     st.caption(t["metrics_caption"])
     cols = st.columns(2)
@@ -1070,14 +1504,20 @@ if user_message:
         if DEBUG_MODE:
             with st.status(t["spinner_prompt"]) as status:
                 full_prompt, retrieved_context = build_question_prompt(
-                    user_message, llm_cfg, selected_embedding_key, rag_cfg, selected_lang
+                    user_message, llm_cfg, selected_embedding_key, rag_cfg, selected_lang,
+                    query_rewrite=rag_query_rewrite,
+                    reranker=rag_reranker,
+                    pool_factor=rag_pool_factor,
                 )
                 st.code(full_prompt)
                 status.update(label=t["spinner_prompt_done"])
         else:
             with st.spinner(t["spinner_researching"].format(rag=rag_display)):
                 full_prompt, retrieved_context = build_question_prompt(
-                    user_message, llm_cfg, selected_embedding_key, rag_cfg, selected_lang
+                    user_message, llm_cfg, selected_embedding_key, rag_cfg, selected_lang,
+                    query_rewrite=rag_query_rewrite,
+                    reranker=rag_reranker,
+                    pool_factor=rag_pool_factor,
                 )
 
         with st.spinner(t["spinner_thinking"].format(llm=llm_display)):

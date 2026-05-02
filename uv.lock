@@ -418,6 +418,7 @@ dependencies = [
     { name = "htbuilder" },
     { name = "langchain" },
     { name = "langchain-huggingface" },
+    { name = "langchain-text-splitters" },
     { name = "numpy" },
     { name = "openai" },
     { name = "openpyxl" },
@@ -433,6 +434,7 @@ requires-dist = [
     { name = "htbuilder", specifier = ">=0.9.0" },
     { name = "langchain", specifier = ">=1.2.15" },
     { name = "langchain-huggingface", specifier = ">=1.2.2" },
+    { name = "langchain-text-splitters", specifier = ">=1.1.2" },
     { name = "numpy", specifier = ">=2.4.4" },
     { name = "openai", specifier = ">=2.32.0" },
     { name = "openpyxl", specifier = ">=3.1.5" },
@@ -670,6 +672,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/05/bf/efb5e2ed832e4d6d45590e25a9e5191986b291b543bc6a807b48bee070b0/langchain_protocol-0.0.14.tar.gz", hash = "sha256:bc1e8553122e6ede310280462d5813023a172ff2785ccbbdec54d43f3a15e5f2", size = 5862, upload-time = "2026-04-29T16:40:18.657Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c2/e9/06c47ecb2aff08f83dfa30058da3bf86be64862c19569043ed5331bbeecd/langchain_protocol-0.0.14-py3-none-any.whl", hash = "sha256:ffc35089779bd8ca217015180cef5e660fc3b074efdaa0f2e95df73583f1a047", size = 6984, upload-time = "2026-04-29T16:40:17.841Z" },
+]
+
+[[package]]
+name = "langchain-text-splitters"
+version = "1.1.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "langchain-core" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/26/9f/6c545900fefb7b00ddfa3f16b80d61338a0ec68c31c5451eeeab99082760/langchain_text_splitters-1.1.2.tar.gz", hash = "sha256:782a723db0a4746ac91e251c7c1d57fd23636e4f38ed733074e28d7a86f41627", size = 293580, upload-time = "2026-04-16T14:20:39.162Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d3/26/1ef06f56198d631296d646a6223de35bcc6cf9795ceb2442816bc963b84c/langchain_text_splitters-1.1.2-py3-none-any.whl", hash = "sha256:a2de0d799ff31886429fd6e2e0032df275b60ec817c19059a7b46181cc1c2f10", size = 35903, upload-time = "2026-04-16T14:20:38.243Z" },
 ]
 
 [[package]]
