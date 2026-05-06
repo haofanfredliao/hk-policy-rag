@@ -1084,33 +1084,44 @@ def search_relevant_docs(
                           by LLM for answer-relevance; top-k kept.
     """
     if not rag_cfg["use_rag"]:
-        return ""
+        return "", {}
 
     index, metadata = get_rag_index(embedding_model_key)
     chunks_data = get_all_chunks_data()
     if index is None or not chunks_data:
-        return ""
+        return "", {}
 
     embedding_cfg = EMBEDDING_MODELS[embedding_model_key]
     k = rag_cfg.get("k", 10)
     # Inflate candidate pool when reranker is active
     fetch_k = k * pool_factor if (reranker and llm_cfg) else k
 
+    # Trace dict — records each transformation step for display in the UI
+    trace: dict = {"original_query": query}
+
     # Step 5: Query Rewrite — before HyDE so HyDE can further expand keywords
     search_query = query
     if query_rewrite and llm_cfg:
         search_query = _rewrite_for_retrieval(query, llm_cfg)
+        if search_query != query:
+            trace["rewritten_query"] = search_query
 
     # Step 4: HyDE — replace search query for English inputs
     if llm_cfg and _is_english_query(search_query):
-        search_query = _hyde_expand_query(search_query, llm_cfg)
+        hyde_result = _hyde_expand_query(search_query, llm_cfg)
+        if hyde_result != search_query:
+            trace["hyde_query"] = hyde_result
+            search_query = hyde_result
 
     # Step 2 + 3: document routing (always against original query for signal detection)
     target_docs = _detect_target_docs(query)
+    if target_docs:
+        trace["target_docs"] = target_docs
 
     if len(target_docs) >= 2 and llm_cfg:
         # Step 3: decompose into per-doc sub-queries
         sub_queries = _decompose_cross_doc_query(query, target_docs, llm_cfg)
+        trace["sub_queries"] = [sq["subquery"] for sq in sub_queries]
         sub_k = max(3, fetch_k // max(len(sub_queries), 1))
 
         seen = set()
@@ -1148,8 +1159,10 @@ def search_relevant_docs(
         retrieved = _faiss_search_full(search_query, embedding_cfg, index, metadata, chunks_data, fetch_k)
 
     # Step 6: LLM Reranking — score candidates by answer-relevance, keep top-k
+    candidates_before_rerank = len(retrieved)
     if reranker and llm_cfg and len(retrieved) > k:
         retrieved = _llm_rerank(query, retrieved, k, llm_cfg)
+        trace["rerank"] = {"before": candidates_before_rerank, "after": len(retrieved)}
 
     # --- Post-processing (unchanged from original) ---
     if rag_cfg.get("filter_by_year"):
@@ -1174,7 +1187,7 @@ def search_relevant_docs(
                 doc.get("page_content", "").strip(),
             ])
         )
-    return "\n\n".join(context_lines)
+    return "\n\n".join(context_lines), trace
 
 
 def search_extra_context(query, rag_cfg):
@@ -1264,6 +1277,14 @@ def build_question_prompt(
         task_infos,
     )
     context = {name: result for name, result in results}
+
+    # search_relevant_docs returns (context_str, trace); unpack and store trace separately
+    rag_trace: dict = {}
+    if "policy_documents" in context:
+        docs_result = context["policy_documents"]
+        if isinstance(docs_result, tuple):
+            context["policy_documents"], rag_trace = docs_result
+
     context = {k: v for k, v in context.items() if v}
 
     prompt = build_prompt(
@@ -1272,7 +1293,43 @@ def build_question_prompt(
         recent_messages=recent_history_str,
         question=question,
     )
-    return prompt, context
+    return prompt, context, rag_trace
+
+
+# -----------------------------------------------------------------------------
+# RAG Trace renderer
+
+def _render_rag_trace(trace: dict) -> None:
+    """Renders the retrieval pipeline trace inside the chunks expander."""
+    if not trace:
+        return
+
+    lines = []
+
+    if "rewritten_query" in trace:
+        lines.append(f"✏️ **Query rewrite:** `{trace['rewritten_query']}`")
+
+    if "hyde_query" in trace:
+        lines.append(f"💡 **HyDE expansion:** `{trace['hyde_query']}`")
+
+    if "target_docs" in trace:
+        docs_str = ", ".join(f"`{d}`" for d in trace["target_docs"])
+        lines.append(f"📄 **Target docs:** {docs_str}")
+
+    if "sub_queries" in trace:
+        sqs = trace["sub_queries"]
+        sqs_str = " · ".join(f"`{q}`" for q in sqs)
+        lines.append(f"🔀 **Sub-queries ({len(sqs)}):** {sqs_str}")
+
+    if "rerank" in trace:
+        r = trace["rerank"]
+        lines.append(
+            f"📊 **Reranked:** {r['before']} candidates → top {r['after']}"
+        )
+
+    if lines:
+        st.markdown("\n\n".join(lines))
+        st.divider()
 
 
 # -----------------------------------------------------------------------------
@@ -1503,7 +1560,7 @@ if user_message:
 
         if DEBUG_MODE:
             with st.status(t["spinner_prompt"]) as status:
-                full_prompt, retrieved_context = build_question_prompt(
+                full_prompt, retrieved_context, rag_trace = build_question_prompt(
                     user_message, llm_cfg, selected_embedding_key, rag_cfg, selected_lang,
                     query_rewrite=rag_query_rewrite,
                     reranker=rag_reranker,
@@ -1513,7 +1570,7 @@ if user_message:
                 status.update(label=t["spinner_prompt_done"])
         else:
             with st.spinner(t["spinner_researching"].format(rag=rag_display)):
-                full_prompt, retrieved_context = build_question_prompt(
+                full_prompt, retrieved_context, rag_trace = build_question_prompt(
                     user_message, llm_cfg, selected_embedding_key, rag_cfg, selected_lang,
                     query_rewrite=rag_query_rewrite,
                     reranker=rag_reranker,
@@ -1527,9 +1584,12 @@ if user_message:
             response = st.write_stream(response_gen)
 
             retrieved_docs = retrieved_context.get("policy_documents", "")
-            if retrieved_docs:
+            if retrieved_docs or rag_trace:
                 with st.expander(t["chunks_expander"], expanded=False):
-                    st.text(retrieved_docs)
+                    if rag_trace:
+                        _render_rag_trace(rag_trace)
+                    if retrieved_docs:
+                        st.text(retrieved_docs)
 
             st.caption(f":gray[{config_label}]")
 

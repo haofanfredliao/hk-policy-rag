@@ -1,17 +1,23 @@
 import json
+import os
 import pandas as pd
 from pathlib import Path
+from dotenv import load_dotenv
 from xai_sdk import Client
 from xai_sdk.chat import system, user
 import time
 
+load_dotenv()
+
 # ========== 配置 ==========
-INPUT_EXCEL = r"D:\ljc\7307\results_raw_v3.xlsx"  # 你的实验结果文件
-GROUND_TRUTH_JSON = r"D:\ljc\7307\ground_truth.json"  # 标准答案文件
-SCORING_RUBRIC_MD = r"D:\ljc\7307\scoring_rubric.md"  # 评分规则文件（如果不需要可置空）
-OUTPUT_SCORED_EXCEL = r"D:\ljc\7307\results_scored.xlsx"
-OUTPUT_METRICS_JSON = r"D:\ljc\7307\final_metrics.json"
-GROK_API_KEY = "..."  # 替换成真实的 Grok API Key
+PROJECT_DIR = Path(__file__).resolve().parent.parent
+
+INPUT_EXCEL = PROJECT_DIR / "data" / "result" / "results_raw_v4.xlsx"
+GROUND_TRUTH_JSON = PROJECT_DIR / "docs" / "ground_truth.json"
+SCORING_RUBRIC_MD = PROJECT_DIR / "docs" / "scoring_rubric.md"
+OUTPUT_SCORED_EXCEL = PROJECT_DIR / "data" / "result" / "results_scored_v4.xlsx"
+OUTPUT_METRICS_JSON = PROJECT_DIR / "data" / "result" / "final_metrics.json"
+GROK_API_KEY = os.getenv("GROK_API_KEY", "")
 
 # 裁判模型使用的评分 prompt（你可以根据 rubric.md 修改）
 DEFAULT_SCORING_PROMPT = """
@@ -44,6 +50,8 @@ DEFAULT_SCORING_PROMPT = """
 """
 
 # 初始化 Grok 客户端
+if not GROK_API_KEY:
+    raise ValueError("GROK_API_KEY not set. Add it to your .env file.")
 client = Client(api_key=GROK_API_KEY)
 
 

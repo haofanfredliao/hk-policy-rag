@@ -1,0 +1,602 @@
+[
+  {
+    "id": "Q001",
+    "question": "根据2024年施政报告，未来五年（2025-26至2029-30年度）总体公营房屋供应量是多少伙？",
+    "type": "单文档事实题",
+    "difficulty": "简单",
+    "source_doc": "2024_PolicyAddress",
+    "expected_source_hint": "段落158，第43页",
+    "ground_truth": "189,000伙",
+    "gt_source": "段落158：「連同『簡約公屋』在內，未來五年（2025-26至2029-30年度）總體公營房屋供應量將達189000伙」"
+  },
+  {
+    "id": "Q002",
+    "question": "2024年施政报告中提到，公屋平均轮候时间的历史高峰是几年？截至报告发布时已降至多少年？",
+    "type": "单文档事实题",
+    "difficulty": "简单",
+    "source_doc": "2024_PolicyAddress",
+    "expected_source_hint": "段落158，第43页",
+    "ground_truth": "历史高峰6.1年，截至报告发布时已降至5.5年",
+    "gt_source": "段落158：「過去兩年，公屋平均輪候時間下降了半年，由高峰6.1年下降至五年半。」"
+  },
+  {
+    "id": "Q003",
+    "question": "2024年施政报告提出，「简约公屋」共有多少个单位？全部何时落成？",
+    "type": "单文档事实题",
+    "difficulty": "简单",
+    "source_doc": "2024_PolicyAddress",
+    "expected_source_hint": "段落157、160，第43-44页",
+    "ground_truth": "30,000个单位；全部于2027-28年度前落成",
+    "gt_source": "段落157：「我在2022年宣布推出創新的30000個『簡約公屋』單位」；段落160：「全部約30000個單位2027-28年度前會落成。」"
+  },
+  {
+    "id": "Q004",
+    "question": "根据2024年施政报告，北部都会区未来第一个五年将有约多少个房屋单位落成入伙？",
+    "type": "单文档事实题",
+    "difficulty": "简单",
+    "source_doc": "2024_PolicyAddress",
+    "expected_source_hint": "段落139，第39页",
+    "ground_truth": "约60,000个",
+    "gt_source": "段落139：「在未來五年，會有約60000個房屋單位落成入伙」"
+  },
+  {
+    "id": "Q005",
+    "question": "2024年施政报告中，河套香港园区第一期总楼面面积倍增至多少平方米？",
+    "type": "单文档事实题",
+    "difficulty": "简单",
+    "source_doc": "2024_PolicyAddress",
+    "expected_source_hint": "段落145，第40页",
+    "ground_truth": "100万平方米",
+    "gt_source": "段落145：「現正提速、提量，把第一期總樓面面積倍增至100萬平方米」"
+  },
+  {
+    "id": "Q006",
+    "question": "根据2024年施政报告，北环线主线计划何年竣工？北都公路（新田段）预计何年开通？",
+    "type": "单文档事实题",
+    "difficulty": "简单",
+    "source_doc": "2024_PolicyAddress",
+    "expected_source_hint": "段落139，第39页",
+    "ground_truth": "北环线主线2034年竣工，北都公路（新田段）2036年开通",
+    "gt_source": "段落139：「北環線主線2034年竣工，北都公路（新田段）預計2036年開通。」"
+  },
+  {
+    "id": "Q007",
+    "question": "2024年施政报告提到，「提前上楼计划」至报告发布时已为多少个家庭提前上楼？为受惠者节省了约多少租金开支？",
+    "type": "单文档事实题",
+    "difficulty": "简单",
+    "source_doc": "2024_PolicyAddress",
+    "expected_source_hint": "段落159，第43页",
+    "ground_truth": "为超过2,000个家庭提前上楼，节省近5,000万元租金开支",
+    "gt_source": "段落159：「提前上樓計劃」至今已為超過2000個家庭提前5至9個月上樓，為受惠者節省近5,000萬元租金開支。」"
+  },
+  {
+    "id": "Q008",
+    "question": "2024年施政报告指出，「向BUD专项基金注资」金额是多少？该基金的全称是什么？",
+    "type": "单文档事实题",
+    "difficulty": "简单",
+    "source_doc": "2024_PolicyAddress",
+    "expected_source_hint": "段落134(ii)，第36页",
+    "ground_truth": "10亿元；发展品牌、升级转型及拓展内销市场的专项基金",
+    "gt_source": "段落134(ii)：「向『BUD專項基金』注資10億元——通過基金（全稱『發展品牌、升級轉型及拓展內銷市場的專項基金』）協助中小企升級轉型和拓展新市場」"
+  },
+  {
+    "id": "Q009",
+    "question": "根据2025年施政报告，新田科技城有约多少公顷创科用地？",
+    "type": "单文档事实题",
+    "difficulty": "简单",
+    "source_doc": "2025_PolicyAddress",
+    "expected_source_hint": "段落52，第13页",
+    "ground_truth": "约210公顷",
+    "gt_source": "段落52：「新田科技城有約210公頃創科用地」"
+  },
+  {
+    "id": "Q010",
+    "question": "2025年施政报告提出成立「北都发展委员会」，由谁担任主席？",
+    "type": "单文档事实题",
+    "difficulty": "简单",
+    "source_doc": "2025_PolicyAddress",
+    "expected_source_hint": "段落44-45，第10页",
+    "ground_truth": "行政长官",
+    "gt_source": "段落45：「我會成立由行政長官擔任主席的『北都發展委員會』」"
+  },
+  {
+    "id": "Q011",
+    "question": "根据2025年施政报告，「北都发展委员会」下设的三个工作组分别是什么？各由谁任组长？",
+    "type": "单文档事实题",
+    "difficulty": "简单",
+    "source_doc": "2025_PolicyAddress",
+    "expected_source_hint": "段落45(i)(ii)(iii)，第10-11页",
+    "ground_truth": "（i）「发展及营运模式设计组」，由财政司司长任组长；（ii）「大学城筹划及建设组」，由政务司司长任组长；（iii）「规划及发展工作组」，由财政司副司长任组长",
+    "gt_source": "段落45(i)(ii)(iii)：「『發展及營運模式設計組』——由財政司司長任組長」、「『大學城籌劃及建設組』——由政務司司長任組長」、「『規劃及發展工作組』——由財政司副司長任組長」"
+  },
+  {
+    "id": "Q012",
+    "question": "2025年施政报告中，「AI效能提升组」的组长和副组长分别是哪些职位的官员？",
+    "type": "单文档事实题",
+    "difficulty": "简单",
+    "source_doc": "2025_PolicyAddress",
+    "expected_source_hint": "段落42，第9页",
+    "ground_truth": "组长：政务司副司长；副组长：创新科技及工业局局长和一位业界代表",
+    "gt_source": "段落42：「政務司副司長將擔任組長，創新科技及工業局局長和數字政策專員分別擔任副組長及秘書長；同時邀請一位業界代表擔任副組長」"
+  },
+  {
+    "id": "Q013",
+    "question": "根据2025/26年度财政预算案，香港2024年全年GDP实质增长率是多少？",
+    "type": "单文档事实题",
+    "difficulty": "简单",
+    "source_doc": "budget2025",
+    "expected_source_hint": "段落9，第3页",
+    "ground_truth": "2.5%",
+    "gt_source": "段落9：「去年香港經濟錄得百分之二點五的溫和增長。」"
+  },
+  {
+    "id": "Q014",
+    "question": "2025/26年度财政预算案中，港投公司每一元投资拉动了多少元的长期资金跟投？",
+    "type": "单文档事实题",
+    "difficulty": "简单",
+    "source_doc": "budget2025",
+    "expected_source_hint": "段落60，第16页",
+    "ground_truth": "4元",
+    "gt_source": "段落60：「港投公司每一元的投資，拉動了四元的長期資金跟投。」"
+  },
+  {
+    "id": "Q015",
+    "question": "根据2025/26年度财政预算案，政府预留多少亿元加快完成河套香港园区第一期的基建及公用设施？",
+    "type": "单文档事实题",
+    "difficulty": "简单",
+    "source_doc": "budget2025",
+    "expected_source_hint": "段落65，第18页",
+    "ground_truth": "37亿元",
+    "gt_source": "段落65：「我已預留三十七億元加快完成香港園區第一期的基建及公用設施。」"
+  },
+  {
+    "id": "Q016",
+    "question": "2025/26年度财政预算案提出，河套香港园区全面发展完成后，对香港经济的年贡献额预计是多少？并创造约多少个职位？",
+    "type": "单文档事实题",
+    "difficulty": "简单",
+    "source_doc": "budget2025",
+    "expected_source_hint": "段落65，第18页",
+    "ground_truth": "年贡献520亿元，创造约52,000个职位",
+    "gt_source": "段落65：「預期香港園區全面發展完成後，對香港經濟的貢獻每年可達五百二十億元，並創造約五萬二千個職位。」"
+  },
+  {
+    "id": "Q017",
+    "question": "根据2025/26年度财政预算案，政府为「制造及生产线『升』级支援先导计划」预留了多少亿元？按什么比例提供配对资助？",
+    "type": "单文档事实题",
+    "difficulty": "简单",
+    "source_doc": "budget2025",
+    "expected_source_hint": "段落47，第14页",
+    "ground_truth": "预留1亿元；按1:2比例配对资助",
+    "gt_source": "段落47：「我已為計劃預留一億元」、「政府會按一比二的配對比例，向每家在港營運生產線的企業提供最高二十五萬元的資助」"
+  },
+  {
+    "id": "Q018",
+    "question": "2026/27年度财政预算案指出，2025年香港整体经济增幅是多少？全年成交量上升至多少宗住宅物业成交？",
+    "type": "单文档事实题",
+    "difficulty": "简单",
+    "source_doc": "budget2026",
+    "expected_source_hint": "段落8、15，第2-3页",
+    "ground_truth": "经济增幅3.5%；住宅物业全年成交量近63,000宗",
+    "gt_source": "段落8：「去年香港經濟蓬勃，……全年整體經濟增幅為百分之三點五」；段落15：「全年成交量上升至近六萬三千宗」"
+  },
+  {
+    "id": "Q019",
+    "question": "根据2026/27年度财政预算案，河套香港园区第一期首批落成的两座大楼已有多少间企业落户？出租率约为多少？",
+    "type": "单文档事实题",
+    "difficulty": "简单",
+    "source_doc": "budget2026",
+    "expected_source_hint": "段落66，第16页",
+    "ground_truth": "超过60间企业落户，出租率约八成",
+    "gt_source": "段落66：「河套香港園區第一期首批落成的兩座大樓已有超過六十間企業落戶，出租率約八成。」"
+  },
+  {
+    "id": "Q020",
+    "question": "2026/27年度财政预算案提出，向河套香港园区公司注资多少亿元？向新田科技城公司注资多少亿元起始资金？",
+    "type": "单文档事实题",
+    "difficulty": "简单",
+    "source_doc": "budget2026",
+    "expected_source_hint": "段落67、69，第16-17页",
+    "ground_truth": "向河套香港园区公司注资100亿元；向新田科技城公司注资100亿元",
+    "gt_source": "段落67：「向立法會申請注資一百億元予園區公司以加速園區發展」；段落69：「向立法會申請注資一百億元起始資金」"
+  },
+  {
+    "id": "Q021",
+    "question": "2024年施政报告提到公屋综合轮候时间将在何年度降至四年半？「简约公屋」从何时起陆续落成？",
+    "type": "单文档事实题",
+    "difficulty": "中等",
+    "source_doc": "2024_PolicyAddress",
+    "expected_source_hint": "段落158、160，第43-44页",
+    "ground_truth": "2026-27年度降至四年半；「简约公屋」从2025年第一季起陆续落成",
+    "gt_source": "段落158：「公屋綜合輪候時間可在2026-27年度共減少一年半，降至四年半」；段落160：「首批位於元朗攸壆路約2100個單位的『簡約公屋』，將在明年第一季落成入伙。」"
+  },
+  {
+    "id": "Q022",
+    "question": "根据2024年施政报告，「大湾区青年就业计划」有何新调整？就业津贴上限调整为多少元？",
+    "type": "单文档事实题",
+    "difficulty": "中等",
+    "source_doc": "2024_PolicyAddress",
+    "expected_source_hint": "段落119，第31页",
+    "ground_truth": "放宽资格至29岁或以下及持副学位或以上学历；就业津贴上限调至每月12,000元",
+    "gt_source": "段落119：「放寬資格至29歲或以下及持副學位或以上學歷，上調向企業發放就業津貼的上限至每月12,000元」"
+  },
+  {
+    "id": "Q023",
+    "question": "2025年施政报告提及，大学城三批土地最早分别将于哪几年供使用？分别位于哪些地区？",
+    "type": "单文档事实题",
+    "difficulty": "中等",
+    "source_doc": "2025_PolicyAddress",
+    "expected_source_hint": "段落45(ii)，第11-12页",
+    "ground_truth": "2026年（洪水桥）、2028年（牛潭尾）、2030年（新界北新市镇）",
+    "gt_source": "段落45(ii)：「三批大學城土地最早將分別於2026年（洪水橋）、2028年（牛潭尾）及2030年（新界北新市鎮）供使用。」"
+  },
+  {
+    "id": "Q024",
+    "question": "根据2025/26年度财政预算案，「创科加速器先导计划」预算金额是多少？每家机构最高可获多少配对资助？",
+    "type": "单文档事实题",
+    "difficulty": "中等",
+    "source_doc": "budget2025",
+    "expected_source_hint": "段落51，第14页",
+    "ground_truth": "预算1.8亿元；最高3,000万元",
+    "gt_source": "段落51：「籌備推出一億八千萬元的『創科加速器先導計劃』……向每家專業初創企業服務機構提供最高三千萬元資助」"
+  },
+  {
+    "id": "Q025",
+    "question": "2026/27年度财政预算案中，「新型工业化资助计划」支持了多少条新智能生产线？带动多少私人投资？",
+    "type": "单文档事实题",
+    "difficulty": "中等",
+    "source_doc": "budget2026",
+    "expected_source_hint": "段落58，第15页",
+    "ground_truth": "支持超过120条新智能生产线；带动超过10亿元私人投资",
+    "gt_source": "段落58：「『新型工業化資助計劃』已支持超過一百二十條新智能生產線，帶動超過十億元私人投資。」"
+  },
+  {
+    "id": "Q026",
+    "question": "根据2025/26年度及2026/27年度财政预算案，政府对北部都会区的核心策略有何延续？两份预算案中分别强调了哪些不同的新举措？",
+    "type": "跨文档综合题",
+    "difficulty": "中等",
+    "source_doc": "budget2025,budget2026",
+    "expected_source_hint": "budget2025段落61-71，budget2026段落63-69",
+    "ground_truth": "延续核心策略：产业导向发展北都、采用多元开发模式、设立专责公司推动。2025/26预算案强调「片区开发」试点、创新多元土地发展模式及沙岭数据园区；2026/27预算案强调公私合作三方方案、河套及新田注资成立专责公司、制定专属法例加速发展。",
+    "gt_source": "budget2025段落62：「採用更多元的發展模式，包括以創新思維試行『片區開發』」、段落67：「發展沙嶺數據園區」；budget2026段落65：「研究進一步推動在北都持有土地的發展商，聯同科技或先進製造企業向政府提出合作發展方案」、段落67-69：「向河套園區公司注資一百億元」、「向新田科技城公司注資一百億元」、段落214：「加快北都發展專屬法例的建議」"
+  },
+  {
+    "id": "Q027",
+    "question": "比较2024年和2025年施政报告对河套香港园区的描述：在落成进度、入驻企业类型和发展规模上各有何新变化？",
+    "type": "跨文档综合题",
+    "difficulty": "中等",
+    "source_doc": "2024_PolicyAddress,2025_PolicyAddress",
+    "expected_source_hint": "PA2024段落145，PA2025段落50-51",
+    "ground_truth": "2024年：第一期总楼面面积倍增至100万平方米，首三座大楼年底起陆续落成，首批租户为生命健康科技、人工智能和数据科学产业，2025年开始进驻。2025年：第一期首三座大楼已落成，生命健康科技、微电子、新能源及人工智能产业租户正陆续进驻；另外五座大楼2027年起陆续完工；政府年内推出第一期余下用地选地，完成第二期规划，考虑「边建设、边进驻」模式。",
+    "gt_source": "PA2024段落145；PA2025段落50-51"
+  },
+  {
+    "id": "Q028",
+    "question": "2024年施政报告和2025/26财政预算案均提及北都大学教育城，两份文件对其土地规划和发展定位的描述是否一致？有何补充？",
+    "type": "跨文档综合题",
+    "difficulty": "中等",
+    "source_doc": "2024_PolicyAddress,budget2025",
+    "expected_source_hint": "PA2024段落110，budget2025段落61(三)",
+    "ground_truth": "一致。2024年施政报告提出预留至少80公顷土地，鼓励本地专上院校与中外知名院校灵活创新合作，计划2026年上半年公布概念发展纲要。2025/26预算案补充预留约90公顷土地发展北都大学教育城，包括第三所医学院，强调配合创科产业发展和推动香港成为国际专上教育枢纽。",
+    "gt_source": "PA2024段落110：「已在北都預留至少80公頃用地，發展『北都大學教育城』……2026年上半年公布概念發展綱要。」；budget2025段落61(三)：「在北部都會區預留約九十公頃土地，發展『北都大學教育城』，包括第三所醫學院」"
+  },
+  {
+    "id": "Q029",
+    "question": "综合2024年施政报告和2025年施政报告，政府对「简约公屋」和「劏房」（简朴房）问题的政策取向有何演变？",
+    "type": "跨文档综合题",
+    "difficulty": "中等",
+    "source_doc": "2024_PolicyAddress,2025_PolicyAddress",
+    "expected_source_hint": "PA2024段落157-165，PA2025第九章房屋部分",
+    "ground_truth": "2024年：宣布3万个「简约公屋」填补短期公屋空白；同时成立「解决劏房问题」工作组，研究立法设立「简朴房」出租制度及最低标准。2025年：继续推进「简约公屋」建设，并推动立法会审议取缔劣质「劏房」的「简朴房」规管制度草案，目标2026年3月实施。",
+    "gt_source": "PA2024段落157-165；PA2025段落208-210"
+  },
+  {
+    "id": "Q030",
+    "question": "根据2025/26和2026/27两份财政预算案，香港GDP增速预测有何变化？政府对经济前景的整体判断有何相似与不同？",
+    "type": "跨文档综合题",
+    "difficulty": "中等",
+    "source_doc": "budget2025,budget2026",
+    "expected_source_hint": "budget2025段落22，budget2026段落22",
+    "ground_truth": "2025/26预算案预测2025年增长2%至3%；2026/27预算案预测2026年增长2.5%至3.5%，区间整体上移。两份预算案均强调内需和外需支持，但2026/27预算案更强调AI投资热潮、亚洲贸易扩张及减息预期带来的利好。",
+    "gt_source": "budget2025段落22：「預測今年經濟實質增長介乎百分之二至三」；budget2026段落22：「預測今年香港經濟增長百分之二點五至三點五。」"
+  },
+  {
+    "id": "Q031",
+    "question": "2024年施政报告提到，港投公司每一元投资拉动了多少元长期资金？此数据在2025/26财政预算案中有无更新？",
+    "type": "跨文档综合题",
+    "difficulty": "中等",
+    "source_doc": "2024_PolicyAddress,budget2025",
+    "expected_source_hint": "budget2025段落60",
+    "ground_truth": "2024年施政报告未提供具体杠杆数据。2025/26财政预算案更新为：每1元投资拉动4元长期资金跟投。",
+    "gt_source": "budget2025段落60：「港投公司每一元的投資，拉動了四元的長期資金跟投。」"
+  },
+  {
+    "id": "Q032",
+    "question": "综合四份文件，政府在人工智能领域的政策部署经历了怎样的演进？从2024年施政报告到2026/27预算案，AI相关政策有哪些新增重点？",
+    "type": "跨文档综合题",
+    "difficulty": "较难",
+    "source_doc": "2024_PolicyAddress,2025_PolicyAddress,budget2025,budget2026",
+    "expected_source_hint": "PA2024第四章，PA2025第四章AI部分，budget2025段落36-52，budget2026 AI+部分",
+    "ground_truth": "2024年施政报告：推动AI在政务、金融、产业应用，强调安全风险防范。2025/26预算案：成立香港人工智能研发院、推进AI超算中心及资助计划、筹办国际机器人与AI论坛。2025年施政报告：成立「AI效能提升组」，推动AI+产业与政务应用，强化数据、资金、人才优势。2026/27预算案：设立「AI+与产业发展策略委员会」，聚焦生命健康及具身智能，强调「AI产业化、产业AI化」，新增全民AI培训、数据科学咨询、AI赋能公共服务等。",
+    "gt_source": "综合各文件AI相关段落"
+  },
+  {
+    "id": "Q033",
+    "question": "从2024年到2026年，政府对北部都会区的投资力度和具体财政承诺有何变化？请综合两份施政报告和两份预算案分析。",
+    "type": "跨文档综合题",
+    "difficulty": "较难",
+    "source_doc": "2024_PolicyAddress,2025_PolicyAddress,budget2025,budget2026",
+    "expected_source_hint": "PA2024段落138-142，PA2025第三章，budget2025段落61-71，budget2026段落63-69",
+    "ground_truth": "2024年施政报告：提出提速推进北都，未来五年约6万单位落成，推进新田科技城首阶段基建工程。2025/26预算案：预留37亿加快河套第一期基建，公布河套全面贡献年520亿、创5.2万职位；提出「片区开发」试点。2025年施政报告：成立「北都发展委员会」，设计专属法例及多元融资模式，推进大学城建设。2026/27预算案：向河套园注资100亿、新田科技城公司注资100亿，推出三方合作方案及加快专属法例。财政承诺从2024年的基建拨款，到2025/26的具体预留，再到2026/27的大额注资与公司化运营，投资力度和制度创新明显增强。",
+    "gt_source": "综合各文件北都相关段落"
+  },
+  {
+    "id": "Q034",
+    "question": "综合2025年施政报告和2025/26财政预算案，低空经济的政策发展分为哪几个层面？监管沙盒的首批申请结果如何？",
+    "type": "跨文档综合题",
+    "difficulty": "较难",
+    "source_doc": "2025_PolicyAddress,budget2025",
+    "expected_source_hint": "PA2025段落153-157，budget2025段落56-57",
+    "ground_truth": "2025/26预算案：低空经济工作组成立，审议首批监管沙盒试点项目申请并将公布结果，修订《小型无人机令》，研究为「先进空中运输系统」订定专用法例。2025年施政报告：制訂发展低空经济规划行动纲领，完善民航法例，推展核心基建，首批监管沙盒项目已公布，成熟场景将恒常化运行，推出进阶版涵盖跨境路线和载人飞行器，保险业开发相关产品。首批申请结果：32个项目在指定航线测试，部分已进入实际运作。",
+    "gt_source": "budget2025段落56-57；PA2025段落153-157"
+  },
+  {
+    "id": "Q035",
+    "question": "政府在两份施政报告和两份财政预算案中均提及绿色发展，请综合这些文件，梳理香港绿色转型政策的三个核心方向及代表性措施。",
+    "type": "跨文档综合题",
+    "difficulty": "较难",
+    "source_doc": "2024_PolicyAddress,2025_PolicyAddress,budget2025,budget2026",
+    "expected_source_hint": "各文件绿色低碳章节",
+    "ground_truth": "核心方向一：绿色金融——扩大政府绿色债券计划至可持续金融项目，推出绿色和可持续金融资助计划，制定可持续披露准则，发展国际碳市场。核心方向二：新能源与绿色运输——推动电动及氢能交通工具，发展可持续航空燃料（SAF）和绿色船用燃料加注中心，构建电动车充电网络。核心方向三：减废回收与转废为能——推进I·PARK1和I·PARK2设施，扩大社区回收网络，推行都市固体废物收费及塑料管制。",
+    "gt_source": "各文件绿色相关段落"
+  },
+  {
+    "id": "Q036",
+    "question": "根据2024年和2025年施政报告，政府对推动公屋轮候时间缩短设定的具体目标分别是什么？请分析政策连贯性。",
+    "type": "推理分析题",
+    "difficulty": "较难",
+    "source_doc": "2024_PolicyAddress,2025_PolicyAddress",
+    "expected_source_hint": "PA2024段落157-160，PA2025第九章房屋部分",
+    "ground_truth": "2024年：目标为2026-27年度将「公屋综合轮候时间」降至约4.5年，当时已从6.1年降至5.5年。2025年：进一步降至5.1年，继续向2026-27年度4.5年目标迈进。政策连贯性体现为通过增加「简约公屋」供应、提前上楼计划、提速公屋建设等措施，逐步缩短轮候时间，目标明确且持续推进。",
+    "gt_source": "PA2024段落158；PA2025段落208"
+  },
+  {
+    "id": "Q037",
+    "question": "综合四份文件，香港「引进重点企业办公室」在吸引企业落户方面有哪些量化成果？这些数据体现了怎样的政策成效？",
+    "type": "推理分析题",
+    "difficulty": "较难",
+    "source_doc": "budget2026",
+    "expected_source_hint": "budget2026段落28(二)",
+    "ground_truth": "截至2026年，引进办已吸引逾100间重点企业落户，其中51间已上市，76间在港设全球或地区总部，将带来约600亿元投资，创造约22,000个职位。数据体现了香港在吸引高潜力、战略性企业方面的显著成效，政策成功推动香港成为国际企业设立总部的首选地。",
+    "gt_source": "budget2026段落28(二)"
+  },
+  {
+    "id": "Q038",
+    "question": "2025年施政报告提出「部门首长责任制」，目的是什么？调查机制如何启动？独立调查小组是什么？",
+    "type": "推理分析题",
+    "difficulty": "中等",
+    "source_doc": "2025_PolicyAddress",
+    "expected_source_hint": "段落29-36，第9页",
+    "ground_truth": "目的：强化部门首长责任担当，提升部门整体管理水平，确保问责与效能。调查机制分两级：一般问题由部门首长负责；严重或涉及部门首长角色的问题由独立调查小组负责。独立调查小组为扩大职能后的「公务员叙用委员会」，独立于政府，常设队伍，可确保调查公正、全面、高效。启动机制：相关局长向所属司长汇报并获同意后启动，或司长主动指示启动。",
+    "gt_source": "段落32-36"
+  },
+  {
+    "id": "Q039",
+    "question": "根据2025/26财政预算案，香港在《全球创新指数》百强科技集群中排名如何？该排名已持续多少年？",
+    "type": "推理分析题",
+    "difficulty": "中等",
+    "source_doc": "budget2025",
+    "expected_source_hint": "段落53，第15页",
+    "ground_truth": "「深圳—香港—广州」集群连续五年排名全球第二。",
+    "gt_source": "段落53：「『深圳—香港—廣州』集群已連續五年蟬聯全球第二位。」"
+  },
+  {
+    "id": "Q040",
+    "question": "从2025/26和2026/27两份财政预算案来看，政府的「强化版财政整合计划」目标是什么？到2026年的执行情况如何？",
+    "type": "推理分析题",
+    "difficulty": "较难",
+    "source_doc": "budget2025,budget2026",
+    "expected_source_hint": "budget2025段落6、229，budget2026段落3、256-265",
+    "ground_truth": "目标：通过严格控制经常开支增长（每年削减2%，累计7%）、公务员编制零增长并逐年减2%、开源增收等，力求数年内恢复收支平衡。2026年执行情况：2025/26年度经营账目提前恢复盈余（约513亿元），综合账目计及发债所得大致平衡（录得29亿元盈余），财政改善快于预期。",
+    "gt_source": "budget2025段落6、229-232；budget2026段落3、273、256-265"
+  },
+  {
+    "id": "Q041",
+    "question": "综合两份施政报告，政府推动香港成为「国际医疗创新枢纽」的核心策略有哪些？政策路径是否一致？",
+    "type": "推理分析题",
+    "difficulty": "较难",
+    "source_doc": "2024_PolicyAddress,2025_PolicyAddress",
+    "expected_source_hint": "PA2024段落93-95，PA2025第九章医疗健康部分",
+    "ground_truth": "核心策略：1. 改革药械审批制度（扩展「1+」机制、成立「香港药械监管中心」、迈向「第一层审批」）；2. 加强生物医药技术研发转化（河套大湾区临床试验协作平台、真实世界研究及应用中心）；3. 推动跨境医疗协作（长者医疗券大湾区试点、港澳药械通）；4. 汇聚医疗专业人才（筹办第三所医学院、引入非本地医护）。政策路径连贯一致，逐年深化推进。",
+    "gt_source": "PA2024段落93-95、154；PA2025段落62-64、89、228-229"
+  },
+  {
+    "id": "Q042",
+    "question": "根据2026/27财政预算案，「产学研1+计划」已批出多少个项目？涵盖哪些领域？",
+    "type": "推理分析题",
+    "difficulty": "中等",
+    "source_doc": "budget2026",
+    "expected_source_hint": "段落86，第19页",
+    "ground_truth": "已批出49个项目，涵盖健康及医药科学、新材料及新能源、AI、先进制造等领域。",
+    "gt_source": "段落86：「已批出四十九個項目，涵蓋健康及醫藥科學、新材料及新能源、AI、先進製造等領域。」"
+  },
+  {
+    "id": "Q043",
+    "question": "综合2025年施政报告和2026/27预算案，政府在低空经济领域的政策从「监管沙盒测试」演进到「商业营运」，具体体现在哪些措施？",
+    "type": "推理分析题",
+    "difficulty": "较难",
+    "source_doc": "2025_PolicyAddress,budget2026",
+    "expected_source_hint": "PA2025段落153-157，budget2026段落70-72",
+    "ground_truth": "2025年施政报告：首批监管沙盒32个项目测试，部分已进入实际运作（如大厦巡查）；推出进阶版沙盒涵盖跨境路线及载人飞行器；制訂行动纲领完善法例。2026/27预算案：上半年起分阶段推行无人机交通管理系统、多用户共享平台、跨境航线及载人飞行器应用；与内地探讨跨境物流试飞。体现从测试到规模化、跨境商业运营的演进。",
+    "gt_source": "PA2025段落71、156；budget2026段落72"
+  },
+  {
+    "id": "Q044",
+    "question": "2025年施政报告提到大湾区医疗合作，是否提及将「长者医疗券大湾区试点计划」扩展到大湾区九个内地城市？",
+    "type": "否定题/边界题",
+    "difficulty": "中等",
+    "source_doc": "2024_PolicyAddress",
+    "expected_source_hint": "PA2024段落154，第42页（注意：此政策出现在2024年报告，非2025年）",
+    "ground_truth": "否。此措施出自2024年施政报告，2025年施政报告未再提及扩大至九个城市的具体内容。",
+    "gt_source": "PA2024段落154：「擴展『長者醫療券大灣區試點計劃』至大灣區九個內地城市」；PA2025相关段落无此表述"
+  },
+  {
+    "id": "Q045",
+    "question": "2024年施政报告是否明确提出废除强积金制度？",
+    "type": "否定题/边界题",
+    "difficulty": "简单",
+    "source_doc": "2024_PolicyAddress",
+    "expected_source_hint": "文档中无此内容，答案为否",
+    "ground_truth": "否。文档无此内容。",
+    "gt_source": "通篇检索无相关表述"
+  },
+  {
+    "id": "Q046",
+    "question": "2025/26年度财政预算案是否宣布全面撤销印花税？",
+    "type": "否定题/边界题",
+    "difficulty": "简单",
+    "source_doc": "budget2025",
+    "expected_source_hint": "文档中无此内容，答案为否",
+    "ground_truth": "否。文档无此内容。",
+    "gt_source": "通篇检索无相关表述"
+  },
+  {
+    "id": "Q047",
+    "question": "根据政策文件，政府是否在2024年施政报告中提出兴建第四所医学院？",
+    "type": "否定题/边界题",
+    "difficulty": "中等",
+    "source_doc": "2024_PolicyAddress",
+    "expected_source_hint": "PA2024段落190提及支持第三所医学院，非第四所",
+    "ground_truth": "否。2024年施政报告支持筹建第三所医学院，非第四所。",
+    "gt_source": "段落190：「政府支持本地大學籌建第三所醫學院」"
+  },
+  {
+    "id": "Q048",
+    "question": "2026/27财政预算案是否宣布香港GDP已达到双位数增长？",
+    "type": "否定题/边界题",
+    "difficulty": "简单",
+    "source_doc": "budget2026",
+    "expected_source_hint": "2025年GDP增长3.5%，非双位数；见段落8",
+    "ground_truth": "否。2025年GDP增长3.5%，未达双位数。",
+    "gt_source": "段落8：「全年整體經濟增幅為百分之三點五」"
+  },
+  {
+    "id": "Q049",
+    "question": "2025年施政报告是否提及将「一签多行」深圳个人游签注已经正式恢复？",
+    "type": "否定题/边界题",
+    "difficulty": "中等",
+    "source_doc": "2024_PolicyAddress,2025_PolicyAddress",
+    "expected_source_hint": "PA2024段落132仅提「向中央提出请求」；检查PA2025是否有落实公告",
+    "ground_truth": "否。2024年施政报告提出请求，2025年施政报告未提及已正式恢复。",
+    "gt_source": "PA2024段落132；PA2025无相关确认"
+  },
+  {
+    "id": "Q050",
+    "question": "根据两份施政报告，政府是否已完成制定「加快发展北都」的专属法律并实施？",
+    "type": "否定题/边界题",
+    "difficulty": "中等",
+    "source_doc": "2024_PolicyAddress,2025_PolicyAddress",
+    "expected_source_hint": "PA2025段落48提及「会订立专属法例」，尚在规划阶段",
+    "ground_truth": "否。2025年施政报告提出「我会订立加快北都发展专属法例」，尚在规划阶段，未完成制定并实施。",
+    "gt_source": "PA2025段落48：「我會訂立加快發展北都專屬法例」"
+  },
+  {
+    "id": "Q051",
+    "question": "2026/27财政预算案是否提到政府已完全消除财政赤字，实现盈余？",
+    "type": "否定题/边界题",
+    "difficulty": "中等",
+    "source_doc": "budget2026",
+    "expected_source_hint": "段落3提经营账目恢复盈余，但综合账目情况需核查",
+    "ground_truth": "否。2025/26年度经营账目恢复盈余（513亿元），综合账目计及发债后录得小额盈余（29亿元），但非经营账目仍有赤字，且中期预测仍有波动，未声称完全消除财政赤字。",
+    "gt_source": "段落3：「經營帳目恢復盈餘，綜合帳目計及發債所得，亦提早恢復平衡」；段落273及中期预测表"
+  },
+  {
+    "id": "Q052",
+    "question": "根据2025/26年度财政预算案，政府就「新田科技城」首批20公顷土地计划何时推出市场？此信息与2025年施政报告是否一致？",
+    "type": "否定题/边界题",
+    "difficulty": "较难",
+    "source_doc": "2024_PolicyAddress,budget2025",
+    "expected_source_hint": "PA2024段落140提2026-27年起，budget2025段落66提2026/27年，需对比核实",
+    "ground_truth": "2024年施政报告提出2026-27年起陆续推出约20公顷新创科用地。2025/26预算案确认该时间表，指出新田科技城20公顷用地将于2026/27年起陆续交由科技园公司发展和营运。两者信息一致。",
+    "gt_source": "PA2024段落140；budget2025段落66"
+  },
+  {
+    "id": "Q053",
+    "question": "According to the 2025 Policy Address, what are the three working groups under the Northern Metropolis Development Committee, and who chairs each group?",
+    "type": "中英交叉题",
+    "difficulty": "中等",
+    "source_doc": "2025_PolicyAddress",
+    "expected_source_hint": "段落45(i)(ii)(iii)，第10-11页",
+    "ground_truth": "(i) Development and Operation Model Design Group, chaired by the Financial Secretary; (ii) University City Planning and Construction Group, chaired by the Chief Secretary for Administration; (iii) Planning and Development Working Group, chaired by the Deputy Financial Secretary.",
+    "gt_source": "Paragraph 45(i)(ii)(iii)"
+  },
+  {
+    "id": "Q054",
+    "question": "What is the expected GDP growth rate for Hong Kong in 2025, as stated in the 2025-26 Budget?",
+    "type": "中英交叉题",
+    "difficulty": "简单",
+    "source_doc": "budget2025",
+    "expected_source_hint": "段落22，第5页",
+    "ground_truth": "2% to 3%",
+    "gt_source": "Paragraph 22: \"real growth of 2% to 3%\""
+  },
+  {
+    "id": "Q055",
+    "question": "According to the 2026-27 Budget, how many enterprises have been attracted by the Office for Attracting Strategic Enterprises (OASES), and how many of them have set up global or regional headquarters in Hong Kong?",
+    "type": "中英交叉题",
+    "difficulty": "中等",
+    "source_doc": "budget2026",
+    "expected_source_hint": "段落28(二)，第6页",
+    "ground_truth": "Over 100 enterprises attracted; 76 have set up global or regional headquarters in Hong Kong.",
+    "gt_source": "Paragraph 28(2): \"已吸引逾一百間重點企業落戶，……七十六間在港設立全球或地區總部\""
+  },
+  {
+    "id": "Q056",
+    "question": "Based on the 2024 Policy Address, what is the total planned public housing supply for the five-year period from 2025-26 to 2029-30, and how does it compare to the previous five-year period?",
+    "type": "中英交叉题",
+    "difficulty": "中等",
+    "source_doc": "2024_PolicyAddress",
+    "expected_source_hint": "段落158，第43页",
+    "ground_truth": "189,000 units for 2025-26 to 2029-30, an increase of about 80% compared to the previous five-year period (2022-23 to 2026-27).",
+    "gt_source": "Paragraph 158"
+  },
+  {
+    "id": "Q057",
+    "question": "According to the 2025 Policy Address, what is the planned area of innovation and technology land in San Tin Technopolis, and when will the conceptual framework for its development be released?",
+    "type": "中英交叉题",
+    "difficulty": "中等",
+    "source_doc": "2025_PolicyAddress",
+    "expected_source_hint": "段落52，第13页",
+    "ground_truth": "Approximately 210 hectares of I&T land. The conceptual framework for the development of San Tin Technopolis will be released within 2025.",
+    "gt_source": "Paragraph 52"
+  },
+  {
+    "id": "Q058",
+    "question": "What does the 2026-27 Budget say about the Hang Seng Index performance in 2025 and the total market capitalisation of Hong Kong's stock market?",
+    "type": "中英交叉题",
+    "difficulty": "中等",
+    "source_doc": "budget2026",
+    "expected_source_hint": "段落14、28(一)，第3、6页",
+    "ground_truth": "The Hang Seng Index rose 28% in 2025. Total market capitalisation reached HK$50 trillion.",
+    "gt_source": "Paragraph 14: \"恒生指数全年上升百分之二十八\"; Paragraph 28(1): \"總市值升至五十萬億元\""
+  },
+  {
+    "id": "Q059",
+    "question": "According to the 2025-26 Budget, what is the expected annual economic contribution of the Lok Ma Chau Loop (Hong Kong Park) upon full development, and how many jobs is it estimated to create?",
+    "type": "中英交叉题",
+    "difficulty": "中等",
+    "source_doc": "budget2025",
+    "expected_source_hint": "段落65，第18页",
+    "ground_truth": "Annual economic contribution of HK$52 billion and creation of approximately 52,000 jobs.",
+    "gt_source": "Paragraph 65"
+  },
+  {
+    "id": "Q060",
+    "question": "Based on the 2024 Policy Address, what specific measures were announced to develop the silver economy, and which government official leads this initiative?",
+    "type": "中英交叉题",
+    "difficulty": "较难",
+    "source_doc": "2024_PolicyAddress",
+    "expected_source_hint": "段落135-136，第37页",
+    "ground_truth": "Establishment of the Working Group on Promoting Silver Economy, chaired by the Deputy Chief Secretary for Administration, focusing on five areas: promoting silver consumption, developing silver industry, promoting silver quality assurance, promoting silver financial and protection arrangements, and releasing silver productivity.",
+    "gt_source": "Paragraph 136"
+  }
+]
