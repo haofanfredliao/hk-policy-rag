@@ -12,10 +12,10 @@ load_dotenv()
 # ========== 配置 ==========
 PROJECT_DIR = Path(__file__).resolve().parent.parent
 
-INPUT_EXCEL = PROJECT_DIR / "data" / "result" / "results_raw_v4.xlsx"
+INPUT_EXCEL = PROJECT_DIR / "data" / "result" / "results_raw_v5.xlsx"
 GROUND_TRUTH_JSON = PROJECT_DIR / "docs" / "ground_truth.json"
 SCORING_RUBRIC_MD = PROJECT_DIR / "docs" / "scoring_rubric.md"
-OUTPUT_SCORED_EXCEL = PROJECT_DIR / "data" / "result" / "results_scored_v4.xlsx"
+OUTPUT_SCORED_EXCEL = PROJECT_DIR / "data" / "result" / "results_scored_v5.xlsx"
 OUTPUT_METRICS_JSON = PROJECT_DIR / "data" / "result" / "final_metrics.json"
 GROK_API_KEY = os.getenv("GROK_API_KEY", "")
 

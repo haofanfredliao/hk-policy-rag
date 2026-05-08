@@ -94,6 +94,24 @@ CONFIGS: dict[str, dict] = {
         "pool_factor": 3,
         "description": "全优化: Rewrite + Rerank + 年份排序",
     },
+    # ---- v2 configs: fixed reranker (larger snippets, no year-sort override) ----
+    "RAG-Rerank-v2": {
+        "use_rag": True,
+        "k": 10,
+        "merge_chunks": True,
+        "reranker": True,
+        "pool_factor": 2,
+        "description": "RAG-Basic + 修复后的 LLM Reranker (pool 2×, 500-char snippets)",
+    },
+    "RAG-Full-v2": {
+        "use_rag": True,
+        "k": 10,
+        "merge_chunks": True,
+        "query_rewrite": True,
+        "reranker": True,
+        "pool_factor": 2,
+        "description": "Rewrite + 修复后的 Reranker，去除年份排序干扰",
+    },
 }
 
 EMBEDDING_CFG = {
@@ -476,18 +494,32 @@ def decompose_cross_doc_query(query: str, target_docs: list, llm_model_id: str) 
 def llm_rerank(query: str, chunks: list, top_k: int, llm_model_id: str) -> list:
     if not chunks or len(chunks) <= top_k:
         return chunks[:top_k]
-    snippet_len = max(200, 1200 // len(chunks))
-    lines = [f"[{i + 1}] {c['page_content'][:snippet_len]}" for i, c in enumerate(chunks)]
+    # Larger snippet budget: 500 chars minimum, up to 10000/n per chunk
+    snippet_len = max(500, 10000 // len(chunks))
+    lines = [
+        f"[{i + 1}] [file={c.get('metadata', {}).get('filename', '?')} "
+        f"year={c.get('metadata', {}).get('year', '?')} "
+        f"page={c.get('metadata', {}).get('page', '?')}]\n{c['page_content'][:snippet_len]}"
+        for i, c in enumerate(chunks)
+    ]
     prompt = textwrap.dedent(f"""
-        你是信息检索评估助手。请评估以下每个文档片段与问题的相关性，
-        判断标准：该片段是否包含能直接回答问题的信息（数字、事实、政策细节）。
+        你是信息检索评估助手。请评估以下每个文档片段与问题的相关性。
+
+        评分标准（0-10整数）：
+        - 10分：片段直接包含问题所需的具体数字、时间节点或政策名称
+        - 7-9分：片段包含高度相关的背景信息，可辅助回答问题
+        - 4-6分：片段与问题主题相关，但缺少关键细节
+        - 1-3分：片段仅主题沾边，内容对回答问题帮助不大
+        - 0分：片段与问题完全无关
+
+        注意：优先给来自问题中明确提及的文件和年份的片段更高分。
 
         问题：{query}
 
         文档片段：
-        {"\\n\\n".join(lines)}
+        {"\\ \n\n".join(lines)}
 
-        请输出JSON数组，每个元素包含 idx（1起始）和 score（0-10整数，10=完全匹配）：
+        请输出JSON数组，每个元素包含 idx（1起始）和 score（0-10整数）：
         [{{"idx": 1, "score": 8}}, {{"idx": 2, "score": 3}}, ...]
         仅输出JSON，不要任何解释。
     """)
@@ -632,7 +664,7 @@ def parse_args():
         help="LLM model id (default: gpt-4o-mini)",
     )
     parser.add_argument(
-        "--out", default=str(PROJECT_DIR / "data" / "result" / "results_raw_v4.xlsx"),
+        "--out", default=str(PROJECT_DIR / "data" / "result" / "results_raw_v5.xlsx"),
         help="Output Excel path",
     )
     parser.add_argument(
